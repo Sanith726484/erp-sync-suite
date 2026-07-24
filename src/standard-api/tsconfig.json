@@ -11,5 +11,5 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node"
   },
-  "include": ["src/**/*"]
+  "include": ["index.ts", "types.ts", "adapters/**/*"]
 }

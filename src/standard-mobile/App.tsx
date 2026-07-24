@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, StatusBar, Image } from 'react-native';
 import { ErpClientManager, GpsLog, Visit, CompanyBranding } from 'standard-api';
-import { LoginScreen } from './src/screens/LoginScreen';
-import { TrackingScreen } from './src/screens/TrackingScreen';
-import { OrderBookingScreen } from './src/screens/OrderBookingScreen';
-import { MobileMap } from './src/components/MobileMap';
-import { LocationTracker } from './src/services/LocationTracker';
+import { LoginScreen } from './screens/LoginScreen';
+import { TrackingScreen } from './screens/TrackingScreen';
+import { OrderBookingScreen } from './screens/OrderBookingScreen';
+import { MobileMap } from './components/MobileMap';
+import { LocationTracker } from './services/LocationTracker';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
