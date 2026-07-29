@@ -100,27 +100,55 @@ export class FrappeAdapter {
             if (user) {
                 filters.push(['owner', '=', user]);
             }
-            const res = await this.client.get('api/resource/Sales Order', {
-                params: {
-                    fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'base_currency', 'base_grand_total']),
-                    filters: JSON.stringify(filters),
-                    limit_page_length: 100,
-                    order_by: 'creation desc',
-                },
-            });
-            const data = res.data.data || [];
-            return data.map((item) => ({
-                id: item.name,
-                customer: item.customer,
-                customerName: item.customer_name,
-                transactionDate: item.transaction_date,
-                items: [], // Standard API list doesn't include child items to save bandwidth
-                grandTotal: item.grand_total,
-                status: item.status,
-                currency: item.currency,
-                baseCurrency: item.base_currency,
-                baseGrandTotal: item.base_grand_total,
-            }));
+            // Try to query with all currency fields first
+            try {
+                const res = await this.client.get('api/resource/Sales Order', {
+                    params: {
+                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'base_currency', 'base_grand_total']),
+                        filters: JSON.stringify(filters),
+                        limit_page_length: 100,
+                        order_by: 'creation desc',
+                    },
+                });
+                const data = res.data.data || [];
+                return data.map((item) => ({
+                    id: item.name,
+                    customer: item.customer,
+                    customerName: item.customer_name,
+                    transactionDate: item.transaction_date,
+                    items: [], // Standard API list doesn't include child items to save bandwidth
+                    grandTotal: item.grand_total,
+                    status: item.status,
+                    currency: item.currency,
+                    baseCurrency: item.base_currency,
+                    baseGrandTotal: item.base_grand_total,
+                }));
+            }
+            catch (innerErr) {
+                console.warn('Failed to query with base currency fields, retrying with standard fields:', innerErr);
+                // Fallback: Query only standard fields
+                const res = await this.client.get('api/resource/Sales Order', {
+                    params: {
+                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency']),
+                        filters: JSON.stringify(filters),
+                        limit_page_length: 100,
+                        order_by: 'creation desc',
+                    },
+                });
+                const data = res.data.data || [];
+                return data.map((item) => ({
+                    id: item.name,
+                    customer: item.customer,
+                    customerName: item.customer_name,
+                    transactionDate: item.transaction_date,
+                    items: [],
+                    grandTotal: item.grand_total,
+                    status: item.status,
+                    currency: item.currency || 'USD',
+                    baseCurrency: 'INR',
+                    baseGrandTotal: item.grand_total, // Fallback to grand total
+                }));
+            }
         }
         catch (err) {
             console.error('Error fetching orders:', err);
