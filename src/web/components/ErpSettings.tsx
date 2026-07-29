@@ -11,6 +11,7 @@ export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => 
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [mode, setMode] = useState<'frappe' | 'mock'>('mock');
+  const [gpsInterval, setGpsInterval] = useState(60);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -21,6 +22,7 @@ export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => 
       setApiKey(config.apiKey || '');
       setApiSecret(config.apiSecret || '');
       setMode(config.mode || 'mock');
+      setGpsInterval(config.gpsInterval || 60);
     }
   }, []);
 
@@ -30,6 +32,7 @@ export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => 
       apiKey: mode === 'frappe' ? apiKey : undefined,
       apiSecret: mode === 'frappe' ? apiSecret : undefined,
       mode,
+      gpsInterval: Number(gpsInterval),
     };
     ErpClientManager.setConfig(config);
     onConfigChanged();
@@ -45,6 +48,7 @@ export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => 
         apiKey,
         apiSecret,
         mode,
+        gpsInterval: Number(gpsInterval),
       };
       
       let client;
@@ -189,6 +193,26 @@ export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => 
             </div>
           </>
         )}
+
+        {/* GPS Interval Settings */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>
+            <Server size={14} /> GPS Tracking Log Interval (Seconds)
+          </label>
+          <input
+            type="number"
+            min="10"
+            max="3600"
+            value={gpsInterval}
+            onChange={(e) => setGpsInterval(Math.max(10, Number(e.target.value)))}
+            placeholder="e.g. 60"
+            className="form-input"
+            style={{ width: '100%' }}
+          />
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+            Time frequency for background coordinate logs logged by the mobile agent. Minimum is 10 seconds.
+          </span>
+        </div>
 
         {/* Test Connection Result Alert */}
         {testResult && (

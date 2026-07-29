@@ -5,6 +5,7 @@ export interface ErpConnectionConfig {
   apiKey?: string;
   apiSecret?: string;
   mode: 'frappe' | 'mock';
+  gpsInterval?: number;
 }
 
 export interface Customer {

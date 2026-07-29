@@ -49,9 +49,11 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
     } else {
       const granted = await LocationTracker.requestPermissions();
       if (granted) {
-        LocationTracker.startTracking(currentUser, 900); // 15 mins
+        const config = ErpClientManager.getConfig();
+        const interval = config?.gpsInterval || 900;
+        LocationTracker.startTracking(currentUser, interval);
         setTrackingActive(true);
-        Alert.alert('Tracking Started', 'Periodic background location logging is now active.');
+        Alert.alert('Tracking Started', `Periodic background location logging is now active (every ${interval}s).`);
         
         // Log initial position
         const p = await LocationTracker.trackNow();

@@ -189,12 +189,12 @@ export const Dashboard: React.FC = () => {
         <div className="glass-card">
           <h3 style={{ fontSize: '18px', color: '#ffffff', marginBottom: '16px' }}>Status Summary</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)' }}>
+            {/* <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)' }}>
               <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>ERP Connection</span>
               <span style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '14px' }}>
-                {ErpClientManager.getConfig()?.mode === 'frappe' ? 'Frappe / ERPNext Connected' : 'Local Sandbox (Demo Mode)'}
+                {ErpClientManager.getConfig()?.mode === 'frappe' ? 'Frappe ERPNext Connected' : 'Local Sandbox (Demo Mode)'}
               </span>
-            </div>
+            </div> */}
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)' }}>
               <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Active Staff Logs</span>
               <span style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px' }}>Enabled</span>
