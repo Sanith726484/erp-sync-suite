@@ -152,9 +152,9 @@ export class MockAdapter implements ErpAdapter {
     return visits.filter(v => v.date === dateISO);
   }
 
-  async getCompanyBranding(companyName: string): Promise<CompanyBranding> {
+  async getCompanyBranding(companyName?: string): Promise<CompanyBranding> {
     return {
-      companyName,
+      companyName: companyName || 'Mock Company',
       logoUrl: 'https://images.unsplash.com/photo-1599305445671-ac291c95aba9?w=200&h=200&fit=crop', // generic logo placeholder
       appIconUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop', // generic app icon
       splashScreenUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&h=1920&fit=crop', // generic splash screen

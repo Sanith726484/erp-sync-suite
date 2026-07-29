@@ -18,5 +18,5 @@ export interface ErpAdapter {
   getActiveVisit(user: string): Promise<Visit | null>;
   getVisits(user: string, dateISO: string): Promise<Visit[]>;
   
-  getCompanyBranding(companyName: string): Promise<CompanyBranding>;
+  getCompanyBranding(companyName?: string): Promise<CompanyBranding>;
 }

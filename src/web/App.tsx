@@ -16,8 +16,8 @@ export const App: React.FC = () => {
   const loadBranding = async () => {
     try {
       const client = ErpClientManager.getClient();
-      // Try to fetch custom branding for default company (or fallback)
-      const data = await client.getCompanyBranding(activeConfig?.username || 'ERPNext');
+      // Auto-fetch the first company branding from ERPNext
+      const data = await client.getCompanyBranding();
       setBranding(data);
     } catch (err) {
       console.warn('Failed to load company branding:', err);

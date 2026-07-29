@@ -22,5 +22,5 @@ export declare class MockAdapter implements ErpAdapter {
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(user: string): Promise<Visit | null>;
     getVisits(user: string, dateISO: string): Promise<Visit[]>;
-    getCompanyBranding(companyName: string): Promise<CompanyBranding>;
+    getCompanyBranding(companyName?: string): Promise<CompanyBranding>;
 }

@@ -346,7 +346,20 @@ export class FrappeAdapter {
     }
     async getCompanyBranding(companyName) {
         try {
-            const res = await this.client.get(`api/resource/Company/${encodeURIComponent(companyName)}`, {
+            let targetCompany = companyName;
+            if (!targetCompany) {
+                const listRes = await this.client.get('api/resource/Company', {
+                    params: { limit_page_length: 1 }
+                });
+                const companies = listRes.data.data || [];
+                if (companies.length > 0) {
+                    targetCompany = companies[0].name;
+                }
+            }
+            if (!targetCompany) {
+                return { companyName: 'ERPNext' };
+            }
+            const res = await this.client.get(`api/resource/Company/${encodeURIComponent(targetCompany)}`, {
                 params: {
                     fields: JSON.stringify(['name', 'company_logo', 'custom_mobile_app_icon', 'custom_splash_screen_image']),
                 }
@@ -361,7 +374,7 @@ export class FrappeAdapter {
                 return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
             };
             return {
-                companyName: data.name || companyName,
+                companyName: data.name || targetCompany,
                 logoUrl: makeAbsolute(data.company_logo),
                 appIconUrl: makeAbsolute(data.custom_mobile_app_icon),
                 splashScreenUrl: makeAbsolute(data.custom_splash_screen_image),
@@ -369,7 +382,7 @@ export class FrappeAdapter {
         }
         catch (err) {
             console.error('Error fetching company branding:', err);
-            return { companyName };
+            return { companyName: companyName || 'ERPNext' };
         }
     }
 }

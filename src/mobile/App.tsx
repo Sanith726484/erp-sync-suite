@@ -19,7 +19,7 @@ export default function App() {
   const loadBranding = async () => {
     try {
       const client = ErpClientManager.getClient();
-      const data = await client.getCompanyBranding(username || 'ERPNext');
+      const data = await client.getCompanyBranding();
       setBranding(data);
     } catch (err) {
       console.warn('Failed to load mobile branding:', err);
