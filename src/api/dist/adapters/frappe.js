@@ -104,7 +104,7 @@ export class FrappeAdapter {
             try {
                 const res = await this.client.get('api/resource/Sales Order', {
                     params: {
-                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'base_currency', 'base_grand_total']),
+                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'base_currency', 'base_grand_total', 'conversion_rate']),
                         filters: JSON.stringify(filters),
                         limit_page_length: 100,
                         order_by: 'creation desc',
@@ -121,15 +121,15 @@ export class FrappeAdapter {
                     status: item.status,
                     currency: item.currency,
                     baseCurrency: item.base_currency,
-                    baseGrandTotal: item.base_grand_total,
+                    baseGrandTotal: item.base_grand_total || (item.grand_total * (item.conversion_rate || 1)),
                 }));
             }
             catch (innerErr) {
                 console.warn('Failed to query with base currency fields, retrying with standard fields:', innerErr);
-                // Fallback: Query only standard fields
+                // Fallback: Query only standard fields + conversion_rate
                 const res = await this.client.get('api/resource/Sales Order', {
                     params: {
-                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency']),
+                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'conversion_rate']),
                         filters: JSON.stringify(filters),
                         limit_page_length: 100,
                         order_by: 'creation desc',
@@ -146,7 +146,7 @@ export class FrappeAdapter {
                     status: item.status,
                     currency: item.currency || 'USD',
                     baseCurrency: 'INR',
-                    baseGrandTotal: item.grand_total, // Fallback to grand total
+                    baseGrandTotal: item.grand_total * (item.conversion_rate || 1),
                 }));
             }
         }

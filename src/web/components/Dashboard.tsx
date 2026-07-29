@@ -65,7 +65,7 @@ export const Dashboard: React.FC = () => {
     loadData();
   }, []);
 
-  const totalBilling = orders.reduce((sum, order) => sum + (order.grandTotal || 0), 0);
+  const totalBilling = orders.reduce((sum, order) => sum + (order.baseGrandTotal || order.grandTotal || 0), 0);
 
   if (loading) {
     return (
