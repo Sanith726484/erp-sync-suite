@@ -88,7 +88,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <TextInput
             value={username}
             onChangeText={setUsername}
-            placeholder="sales@suntek.com"
             placeholderTextColor="#5a6880"
             style={styles.input}
             autoCapitalize="none"

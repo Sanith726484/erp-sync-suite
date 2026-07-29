@@ -3,7 +3,7 @@ import { ErpClientManager, GpsLog, Visit } from 'api';
 import { MapPin, Calendar, User, Navigation, RefreshCw, AlertCircle, Award } from 'lucide-react';
 
 export const RouteHistoryMap: React.FC = () => {
-  const [username, setUsername] = useState('sales@suntek.com');
+  const [username, setUsername] = useState('sales@demo.com');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [logs, setLogs] = useState<GpsLog[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -161,7 +161,6 @@ export const RouteHistoryMap: React.FC = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="sales@suntek.com"
               style={{ background: 'none', border: 'none', color: '#ffffff', outline: 'none', fontSize: '14px' }}
             />
           </div>
