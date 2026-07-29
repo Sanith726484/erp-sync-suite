@@ -162,7 +162,7 @@ export class FrappeAdapter {
         try {
             // 1. Try to invoke custom API method first
             try {
-                const res = await this.client.post('api/method/mock_app.mock.api.gps_tracking.save_gps_location', {
+                const res = await this.client.post('api/method/erpnext_mobile.api.gps_tracking.save_gps_location', {
                     latitude: lat,
                     longitude: lng,
                 });
