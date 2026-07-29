@@ -102,7 +102,7 @@ export class FrappeAdapter {
             }
             const res = await this.client.get('api/resource/Sales Order', {
                 params: {
-                    fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status']),
+                    fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'base_currency', 'base_grand_total']),
                     filters: JSON.stringify(filters),
                     limit_page_length: 100,
                     order_by: 'creation desc',
@@ -117,6 +117,9 @@ export class FrappeAdapter {
                 items: [], // Standard API list doesn't include child items to save bandwidth
                 grandTotal: item.grand_total,
                 status: item.status,
+                currency: item.currency,
+                baseCurrency: item.base_currency,
+                baseGrandTotal: item.base_grand_total,
             }));
         }
         catch (err) {

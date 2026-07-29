@@ -20,6 +20,22 @@ const getCurrencySymbol = (): string => {
   return '$';
 };
 
+const formatOrderValue = (order: Order): string => {
+  const currencySymbolMap: { [key: string]: string } = {
+    USD: '$',
+    INR: '₹',
+    EUR: '€',
+    GBP: '£'
+  };
+  const txCurrency = order.currency || 'USD';
+  const txSymbol = currencySymbolMap[txCurrency] || (txCurrency + ' ');
+  const txTotalStr = `${txSymbol}${order.grandTotal.toFixed(2)}`;
+  if (txCurrency !== 'INR' && order.baseGrandTotal) {
+    return `${txTotalStr} (₹${order.baseGrandTotal.toFixed(2)})`;
+  }
+  return txTotalStr;
+};
+
 export const Dashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -148,7 +164,7 @@ export const Dashboard: React.FC = () => {
                       <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{order.id}</td>
                       <td>{order.customerName || order.customer}</td>
                       <td>{order.transactionDate}</td>
-                      <td style={{ fontWeight: 600 }}>{getCurrencySymbol()}{order.grandTotal.toFixed(2)}</td>
+                      <td style={{ fontWeight: 600 }}>{formatOrderValue(order)}</td>
                       <td>
                         <span style={{
                           padding: '4px 8px',

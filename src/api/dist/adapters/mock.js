@@ -61,10 +61,16 @@ export class MockAdapter {
     }
     async createOrder(order) {
         const orders = this.getStorageItem('mock_orders', []);
+        const currency = order.currency || (Math.random() > 0.5 ? 'USD' : 'INR');
+        const grandTotal = order.grandTotal;
+        const baseGrandTotal = currency === 'INR' ? grandTotal : grandTotal * 84; // mock rate
         const newOrder = {
             ...order,
             id: `SO-MOCK-${Math.floor(10000 + Math.random() * 90000)}`,
             status: 'Draft',
+            currency,
+            baseCurrency: 'INR',
+            baseGrandTotal,
         };
         orders.unshift(newOrder);
         this.setStorageItem('mock_orders', orders);

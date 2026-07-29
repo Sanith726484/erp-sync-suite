@@ -20,6 +20,22 @@ const getCurrencySymbol = (): string => {
   return '$';
 };
 
+const formatOrderValue = (order: Order): string => {
+  const currencySymbolMap: { [key: string]: string } = {
+    USD: '$',
+    INR: '₹',
+    EUR: '€',
+    GBP: '£'
+  };
+  const txCurrency = order.currency || 'USD';
+  const txSymbol = currencySymbolMap[txCurrency] || (txCurrency + ' ');
+  const txTotalStr = `${txSymbol}${order.grandTotal.toFixed(2)}`;
+  if (txCurrency !== 'INR' && order.baseGrandTotal) {
+    return `${txTotalStr} (₹${order.baseGrandTotal.toFixed(2)})`;
+  }
+  return txTotalStr;
+};
+
 export const OrderList: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,7 +135,7 @@ export const OrderList: React.FC = () => {
                         <span>{order.transactionDate}</span>
                       </div>
                     </td>
-                    <td style={{ fontWeight: 700, fontSize: '15px' }}>{getCurrencySymbol()}{order.grandTotal.toFixed(2)}</td>
+                    <td style={{ fontWeight: 700, fontSize: '15px' }}>{formatOrderValue(order)}</td>
                     <td>
                       <span style={{
                         padding: '6px 12px',

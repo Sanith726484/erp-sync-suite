@@ -33,6 +33,9 @@ export interface Order {
     items: OrderItem[];
     grandTotal: number;
     status?: string;
+    currency?: string;
+    baseCurrency?: string;
+    baseGrandTotal?: number;
 }
 export interface GpsLog {
     id?: string;
