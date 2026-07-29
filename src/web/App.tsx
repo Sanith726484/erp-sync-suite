@@ -17,7 +17,7 @@ export const App: React.FC = () => {
     try {
       const client = ErpClientManager.getClient();
       // Try to fetch custom branding for default company (or fallback)
-      const data = await client.getCompanyBranding(activeConfig?.username || 'Suntek');
+      const data = await client.getCompanyBranding(activeConfig?.username || 'ERPNext');
       setBranding(data);
     } catch (err) {
       console.warn('Failed to load company branding:', err);
@@ -93,7 +93,7 @@ export const App: React.FC = () => {
             )}
             <div>
               <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }}>
-                {branding?.companyName || 'Suntek Sync'}
+                {branding?.companyName || 'Erpnext'}
               </h2>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ERP Sync Dashboard</span>
             </div>

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Suntek Sync Mobile",
-    "slug": "suntek-sync-mobile",
+    "name": "Erpnext Mobile",
+    "slug": "erp-sync-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.suntek.sync.mobile",
+      "bundleIdentifier": "com.erpnext.sync.mobile",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app requires access to location services to track check-in locations and log route progress.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app tracks coordinates in the background to build travel route trails for mileage logs.",
@@ -30,7 +30,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#090d16"
       },
-      "package": "com.suntek.sync.mobile",
+      "package": "com.erpnext.sync.mobile",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

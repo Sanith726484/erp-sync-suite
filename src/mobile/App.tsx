@@ -19,7 +19,7 @@ export default function App() {
   const loadBranding = async () => {
     try {
       const client = ErpClientManager.getClient();
-      const data = await client.getCompanyBranding(username || 'Suntek');
+      const data = await client.getCompanyBranding(username || 'ERPNext');
       setBranding(data);
     } catch (err) {
       console.warn('Failed to load mobile branding:', err);
@@ -95,7 +95,7 @@ export default function App() {
             />
           )}
           <View>
-            <Text style={styles.headerTitle}>{branding?.companyName || 'Suntek Sync'}</Text>
+            <Text style={styles.headerTitle}>{branding?.companyName || 'Erpnext'}</Text>
             <Text style={styles.headerSubtitle}>User: {username}</Text>
           </View>
         </View>

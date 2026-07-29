@@ -45,7 +45,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerBlock}>
-        <Text style={styles.brandTitle}>Suntek Sync</Text>
+        <Text style={styles.brandTitle}>Erpnext</Text>
         <Text style={styles.brandSubtitle}>Field Operations Connector</Text>
       </View>
 

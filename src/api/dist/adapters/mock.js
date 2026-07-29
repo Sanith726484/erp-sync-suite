@@ -47,9 +47,9 @@ export class MockAdapter {
     }
     async getProducts() {
         const defaultProducts = [
-            { id: 'ITEM-SOLAR-500W', name: 'Suntek Mono Perc Solar Panel 500W', rate: 150.00, description: 'High-efficiency monocrystalline PV panel' },
-            { id: 'ITEM-INV-5KW', name: 'Suntek Grid-Tied Inverter 5kW', rate: 450.00, description: 'Single-phase smart string solar inverter' },
-            { id: 'ITEM-INV-10KW', name: 'Suntek Grid-Tied Inverter 10kW', rate: 850.00, description: 'Three-phase smart string solar inverter' },
+            { id: 'ITEM-SOLAR-500W', name: 'Erpnext Mono Perc Solar Panel 500W', rate: 150.00, description: 'High-efficiency monocrystalline PV panel' },
+            { id: 'ITEM-INV-5KW', name: 'Erpnext Grid-Tied Inverter 5kW', rate: 450.00, description: 'Single-phase smart string solar inverter' },
+            { id: 'ITEM-INV-10KW', name: 'Erpnext Grid-Tied Inverter 10kW', rate: 850.00, description: 'Three-phase smart string solar inverter' },
             { id: 'ITEM-CABLE-DC', name: 'Solar DC Cable 4 Sq.mm (Mtr)', rate: 1.20, description: 'UV resistant cross-linked solar cable' },
             { id: 'ITEM-STRUCTURE-GI', name: 'Galvanized Mounting Structure 4-Panel', rate: 80.00, description: 'HDG structure for rooftop mounting' },
         ];
