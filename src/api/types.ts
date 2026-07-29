@@ -65,5 +65,6 @@ export interface CompanyBranding {
   logoUrl?: string;
   appIconUrl?: string;
   splashScreenUrl?: string;
+  defaultCurrency?: string;
 }
 

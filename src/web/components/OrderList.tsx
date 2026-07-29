@@ -2,6 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { ErpClientManager, Order } from 'api';
 import { ShoppingBag, RefreshCw, Calendar, Search } from 'lucide-react';
 
+const getCurrencySymbol = (): string => {
+  try {
+    const brandingStr = localStorage.getItem('company_branding');
+    if (brandingStr) {
+      const branding = JSON.parse(brandingStr);
+      const currency = branding.defaultCurrency || 'USD';
+      if (currency === 'INR') return '₹';
+      if (currency === 'EUR') return '€';
+      if (currency === 'GBP') return '£';
+      if (currency === 'USD') return '$';
+      return currency + ' ';
+    }
+  } catch (e) {
+    // Ignore
+  }
+  return '$';
+};
+
 export const OrderList: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +119,7 @@ export const OrderList: React.FC = () => {
                         <span>{order.transactionDate}</span>
                       </div>
                     </td>
-                    <td style={{ fontWeight: 700, fontSize: '15px' }}>${order.grandTotal.toFixed(2)}</td>
+                    <td style={{ fontWeight: 700, fontSize: '15px' }}>{getCurrencySymbol()}{order.grandTotal.toFixed(2)}</td>
                     <td>
                       <span style={{
                         padding: '6px 12px',

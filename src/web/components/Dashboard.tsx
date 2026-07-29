@@ -2,6 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { ErpClientManager, Order, Customer, Product } from 'api';
 import { TrendingUp, Users, ShoppingBag, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
 
+const getCurrencySymbol = (): string => {
+  try {
+    const brandingStr = localStorage.getItem('company_branding');
+    if (brandingStr) {
+      const branding = JSON.parse(brandingStr);
+      const currency = branding.defaultCurrency || 'USD';
+      if (currency === 'INR') return '₹';
+      if (currency === 'EUR') return '€';
+      if (currency === 'GBP') return '£';
+      if (currency === 'USD') return '$';
+      return currency + ' ';
+    }
+  } catch (e) {
+    // Ignore
+  }
+  return '$';
+};
+
 export const Dashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -59,7 +77,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600 }}>Total Bookings</div>
-            <h3 style={{ fontSize: '24px', color: '#ffffff', marginTop: '4px' }}>${totalBilling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+            <h3 style={{ fontSize: '24px', color: '#ffffff', marginTop: '4px' }}>{getCurrencySymbol()}{totalBilling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
         </div>
 
@@ -130,7 +148,7 @@ export const Dashboard: React.FC = () => {
                       <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{order.id}</td>
                       <td>{order.customerName || order.customer}</td>
                       <td>{order.transactionDate}</td>
-                      <td style={{ fontWeight: 600 }}>${order.grandTotal.toFixed(2)}</td>
+                      <td style={{ fontWeight: 600 }}>{getCurrencySymbol()}{order.grandTotal.toFixed(2)}</td>
                       <td>
                         <span style={{
                           padding: '4px 8px',

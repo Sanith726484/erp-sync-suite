@@ -392,7 +392,7 @@ export class FrappeAdapter implements ErpAdapter {
 
       const res = await this.client.get(`api/resource/Company/${encodeURIComponent(targetCompany)}`, {
         params: {
-          fields: JSON.stringify(['name', 'company_logo', 'mobile_app_icon', 'splash_splash_screen_image
+          fields: JSON.stringify(['name', 'company_logo', 'custom_mobile_app_icon', 'custom_splash_screen_image', 'default_currency']),
         }
       });
       const data = res.data.data || {};
@@ -407,8 +407,9 @@ export class FrappeAdapter implements ErpAdapter {
       return {
         companyName: data.name || targetCompany,
         logoUrl: makeAbsolute(data.company_logo),
-        appIconUrl: makeAbsolute(data.mobile_app_icon),
-        splashScreenUrl: makeAbsolute(data.splash_screen_image),
+        appIconUrl: makeAbsolute(data.custom_mobile_app_icon),
+        splashScreenUrl: makeAbsolute(data.custom_splash_screen_image),
+        defaultCurrency: data.default_currency,
       };
     } catch (err) {
       console.error('Error fetching company branding:', err);

@@ -19,6 +19,9 @@ export const App: React.FC = () => {
       // Auto-fetch the first company branding from ERPNext
       const data = await client.getCompanyBranding();
       setBranding(data);
+      if (data && typeof localStorage !== 'undefined') {
+        localStorage.setItem('company_branding', JSON.stringify(data));
+      }
     } catch (err) {
       console.warn('Failed to load company branding:', err);
       setBranding(null);
