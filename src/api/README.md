@@ -11,9 +11,6 @@ You need to create two custom Doctypes in your Frappe site (via the "DocType" li
 ### A. Doctype: `GPS Location Log`
 This logs periodic location coordinates from the mobile app.
 
-* **DocType Settings**:
-  * **Custom?**: Yes
-  * **User Assignable?**: Yes
 * **Fields**:
   1. **User** (`Link` -> `User`): The user being tracked.
   2. **Latitude** (`Float`): Latitude coordinate.
@@ -26,8 +23,6 @@ This logs periodic location coordinates from the mobile app.
 ### B. Doctype: `Visit`
 This logs employee check-in and check-out actions.
 
-* **DocType Settings**:
-  * **Custom?**: Yes
 * **Fields**:
   1. **Customer** (`Link` -> `Customer`): The customer being visited.
   2. **Visit Type** (`Select`): Options include: `Client Meet & Site Visit`, `Maintenance`, `Order Collection`, `Follow-up`.

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ErpClientManager, Order, Customer, Product } from 'standard-api';
+import { ErpClientManager, Order, Customer, Product } from 'api';
 import { TrendingUp, Users, ShoppingBag, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {

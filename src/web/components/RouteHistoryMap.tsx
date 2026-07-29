@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ErpClientManager, GpsLog, Visit } from 'standard-api';
+import { ErpClientManager, GpsLog, Visit } from 'api';
 import { MapPin, Calendar, User, Navigation, RefreshCw, AlertCircle, Award } from 'lucide-react';
 
 export const RouteHistoryMap: React.FC = () => {

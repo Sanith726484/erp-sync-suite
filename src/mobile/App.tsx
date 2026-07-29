@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, StatusBar, Image } from 'react-native';
-import { ErpClientManager, GpsLog, Visit, CompanyBranding } from 'standard-api';
+import { ErpClientManager, GpsLog, Visit, CompanyBranding } from 'api';
 import { LoginScreen } from './screens/LoginScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { OrderBookingScreen } from './screens/OrderBookingScreen';

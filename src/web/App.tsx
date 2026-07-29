@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ErpClientManager, CompanyBranding } from 'standard-api';
+import { ErpClientManager, CompanyBranding } from 'api';
 import { Dashboard } from './components/Dashboard';
 import { OrderList } from './components/OrderList';
 import { RouteHistoryMap } from './components/RouteHistoryMap';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
-import { ErpClientManager, ErpConnectionConfig } from 'standard-api';
+import { ErpClientManager, ErpConnectionConfig } from 'api';
 
 interface LoginScreenProps {
   onLoginSuccess: (username: string) => void;

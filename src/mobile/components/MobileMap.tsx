@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { GpsLog, Visit } from 'standard-api';
+import { GpsLog, Visit } from 'api';
 
 interface MobileMapProps {
   logs: GpsLog[];

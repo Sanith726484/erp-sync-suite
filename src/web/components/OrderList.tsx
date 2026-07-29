@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ErpClientManager, Order } from 'standard-api';
+import { ErpClientManager, Order } from 'api';
 import { ShoppingBag, RefreshCw, Calendar, Search } from 'lucide-react';
 
 export const OrderList: React.FC = () => {

@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding } from '../types';
 
 export class FrappeAdapter implements ErpAdapter {
   private client: AxiosInstance;
@@ -181,7 +181,7 @@ export class FrappeAdapter implements ErpAdapter {
     try {
       // 1. Try to invoke custom API method first
       try {
-        const res = await this.client.post('api/method/suntek_app.suntek.api.gps_tracking.save_gps_location', {
+        const res = await this.client.post('api/method/mock_app.mock.api.gps_tracking.save_gps_location', {
           latitude: lat,
           longitude: lng,
         });

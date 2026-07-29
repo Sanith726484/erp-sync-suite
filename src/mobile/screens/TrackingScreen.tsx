@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { ErpClientManager, Customer, Visit } from 'standard-api';
+import { ErpClientManager, Customer, Visit } from 'api';
 import { LocationTracker } from '../services/LocationTracker';
 
 interface TrackingScreenProps {

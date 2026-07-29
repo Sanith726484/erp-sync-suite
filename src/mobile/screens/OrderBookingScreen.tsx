@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { ErpClientManager, Customer, Product, OrderItem } from 'standard-api';
+import { ErpClientManager, Customer, Product, OrderItem } from 'api';
 
 export const OrderBookingScreen: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);

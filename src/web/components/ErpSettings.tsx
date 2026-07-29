@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ErpClientManager, ErpConnectionConfig } from 'standard-api';
+import { ErpClientManager, ErpConnectionConfig } from 'api';
 import { Database, Link, Key, ShieldCheck, HelpCircle, Server } from 'lucide-react';
 
 interface ErpSettingsProps {
@@ -50,11 +50,11 @@ export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => 
       let client;
       if (mode === 'mock') {
         // Mock adapter
-        const { MockAdapter } = await import('standard-api');
+        const { MockAdapter } = await import('api');
         client = new MockAdapter();
       } else {
         // Frappe adapter
-        const { FrappeAdapter } = await import('standard-api');
+        const { FrappeAdapter } = await import('api');
         client = new FrappeAdapter(config);
       }
       

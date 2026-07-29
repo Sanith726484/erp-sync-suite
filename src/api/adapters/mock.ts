@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding } from '../types';
 
 export class MockAdapter implements ErpAdapter {
   private getStorageItem<T>(key: string, defaultValue: T): T {
