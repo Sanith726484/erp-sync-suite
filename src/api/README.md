@@ -25,7 +25,7 @@ This logs employee check-in and check-out actions.
 
 * **Fields**:
   1. **Customer** (`Link` -> `Customer`): The customer being visited.
-  2. **Visit Type** (`Select`): Options include: `Client Meet & Site Visit`, `Maintenance`, `Order Collection`, `Follow-up`.
+  2. **Visit Type** (`Select`): Options include: `Client Meet & Site Visit`, `Maintenance`, `Payment Collection`, `Follow-up`.
   3. **Date** (`Date`): Date of visit check-in.
   4. **Time** (`Time`): Time of visit check-in.
   5. **Latitude** (`Float`): Check-in latitude coordinate.
@@ -41,8 +41,8 @@ This logs employee check-in and check-out actions.
 To enable dynamic, white-label branding in the web and mobile apps, customize the standard **Company** Doctype to add or ensure the following fields:
 
 1. **Company Logo** (`Attach Image`, fieldname: `company_logo`): This is the standard ERPNext logo field.
-2. **Mobile App Icon** (`Attach Image`, fieldname: `custom_mobile_app_icon`): Used as the mobile app icon and favicon.
-3. **Splash Screen Image** (`Attach Image`, fieldname: `custom_splash_screen_image`): Rendered on the mobile app loader/boot state.
+2. **Mobile App Icon** (`Attach Image`, fieldname: `mobile_app_icon`): Used as the mobile app icon and favicon.
+3. **Splash Screen Image** (`Attach Image`, fieldname: `splash_screen_image`): Rendered on the mobile app loader/boot state.
 
 ---
 
