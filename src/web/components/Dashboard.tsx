@@ -36,6 +36,23 @@ const formatOrderValue = (order: Order): string => {
   return txTotalStr;
 };
 
+const formatGpsInterval = (seconds?: number): string => {
+  if (!seconds || seconds <= 0) return '1 minute';
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes > 0 && remainingSeconds === 0) {
+    return minutes === 1 ? '1 minute' : `${minutes} minutes`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes} minute${minutes === 1 ? '' : 's'} ${remainingSeconds} seconds`;
+  }
+
+  return `${seconds} seconds`;
+};
+
 export const Dashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -201,7 +218,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)' }}>
               <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>GPS Sync Interval</span>
-              <span style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px' }}>15 minutes</span>
+              <span style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px' }}>{formatGpsInterval(ErpClientManager.getConfig()?.gpsInterval)}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px', marginTop: '10px' }}>
               <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-secondary)' }}>System TIP</div>
