@@ -1,4 +1,4 @@
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../types';
 export interface ErpAdapter {
     testConnection(): Promise<boolean>;
     login(username: string, password?: string): Promise<{
@@ -20,6 +20,9 @@ export interface ErpAdapter {
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(user: string): Promise<Visit | null>;
     getVisits(user: string, dateISO?: string): Promise<Visit[]>;
+    checkInAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
+    checkOutAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
+    getTodayAttendanceStatus(user: string): Promise<AttendanceLog | null>;
     getBranches?(): Promise<string[]>;
     getStates?(): Promise<string[]>;
     getCompanyBranding(companyName?: string): Promise<CompanyBranding>;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile } from '../api';
+import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../api';
 import { LoginScreen } from './screens/LoginScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { OrderBookingScreen } from './screens/OrderBookingScreen';
@@ -40,6 +40,17 @@ const getUserEmail = (user: string, company?: string): string => {
   return `${slug}@${domain}`;
 };
 
+const formatAttendanceTime = (time: string): string => {
+  const parsed = new Date(time.includes('T') ? time : time.replace(' ', 'T'));
+  if (isNaN(parsed.getTime())) return time;
+  return parsed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const formatMapDate = (d: Date): string =>
+  d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+const toDateISO = (d: Date): string => d.toISOString().slice(0, 10);
+
 const getUserInitials = (displayName: string): string => {
   const parts = displayName.trim().split(' ').filter(Boolean);
   if (parts.length >= 2) {
@@ -59,6 +70,10 @@ function MainApp() {
   const [loadingMap, setLoadingMap] = useState(false);
   const [branding, setBranding] = useState<CompanyBranding | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState<'checked-in' | 'checked-out'>('checked-out');
+  const [attendanceTime, setAttendanceTime] = useState<string | null>(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [mapDate, setMapDate] = useState<Date>(() => new Date());
 
   const loadUserDataAndBranding = async () => {
     try {
@@ -96,14 +111,94 @@ function MainApp() {
     }
   };
 
+  const loadAttendanceStatus = async () => {
+    try {
+      const client = ErpClientManager.getClient();
+      if (typeof client.getTodayAttendanceStatus !== 'function') return;
+
+      const status: AttendanceLog | null = await client.getTodayAttendanceStatus(username);
+      if (status && status.logType === 'IN') {
+        setAttendanceStatus('checked-in');
+        setAttendanceTime(status.time);
+        // App restarted/resumed after an earlier check-in: resume GPS tracking.
+        if (!LocationTracker.isTrackingActive()) {
+          const granted = await LocationTracker.requestPermissions();
+          if (granted) {
+            const config = ErpClientManager.getConfig();
+            LocationTracker.startTracking(username, config?.gpsInterval || 900);
+          }
+        }
+      } else {
+        setAttendanceStatus('checked-out');
+        setAttendanceTime(status?.time || null);
+      }
+    } catch (err) {
+      console.warn('Failed to load attendance status:', err);
+    }
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
       void loadUserDataAndBranding();
+      void loadAttendanceStatus();
     } else {
       setBranding(null);
       setUserProfile(null);
+      setAttendanceStatus('checked-out');
+      setAttendanceTime(null);
     }
   }, [isLoggedIn]);
+
+  const handleAttendanceCheckIn = async () => {
+    setAttendanceLoading(true);
+    try {
+      const granted = await LocationTracker.requestPermissions();
+      if (!granted) {
+        Alert.alert('Permission Required', 'Location permission is needed to check in for attendance.');
+        return;
+      }
+
+      const pos = await LocationTracker.getCurrentPosition();
+      if (!pos) {
+        Alert.alert('Check-In Failed', 'Unable to capture your current location.');
+        return;
+      }
+
+      const client = ErpClientManager.getClient();
+      const log = await client.checkInAttendance(pos.latitude, pos.longitude, username);
+
+      setAttendanceStatus('checked-in');
+      setAttendanceTime(log.time);
+
+      const config = ErpClientManager.getConfig();
+      LocationTracker.startTracking(username, config?.gpsInterval || 900);
+
+      Alert.alert('Checked In', 'Attendance check-in recorded. GPS tracking has started.');
+    } catch (err: any) {
+      Alert.alert('Check-In Failed', err.message || 'Unable to record attendance check-in.');
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  const handleAttendanceCheckOut = async () => {
+    setAttendanceLoading(true);
+    try {
+      const pos = await LocationTracker.getCurrentPosition();
+      const client = ErpClientManager.getClient();
+      const log = await client.checkOutAttendance(pos?.latitude || 0, pos?.longitude || 0, username);
+
+      setAttendanceStatus('checked-out');
+      setAttendanceTime(log.time);
+      LocationTracker.stopTracking();
+
+      Alert.alert('Checked Out', 'Attendance check-out recorded. GPS tracking has stopped.');
+    } catch (err: any) {
+      Alert.alert('Check-Out Failed', err.message || 'Unable to record attendance check-out.');
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
 
   const handleLoginSuccess = (user: string) => {
     setUsername(user);
@@ -138,15 +233,15 @@ function MainApp() {
     }
   };
 
-  const loadMapData = async () => {
+  const loadMapData = async (dateOverride?: Date) => {
     if (!isLoggedIn || activeTab !== 'map') return;
     setLoadingMap(true);
     try {
-      const todayISO = new Date().toISOString().slice(0, 10);
+      const dateISO = toDateISO(dateOverride || mapDate);
       const client = ErpClientManager.getClient();
       const [gpsLogs, visitsList] = await Promise.all([
-        client.getGpsLocationLogs(username, todayISO),
-        client.getVisits(username, todayISO)
+        client.getGpsLocationLogs(username, dateISO),
+        client.getVisits(username, dateISO)
       ]);
       setLogs(gpsLogs);
       setVisits(visitsList);
@@ -157,11 +252,19 @@ function MainApp() {
     }
   };
 
+  const shiftMapDate = (days: number) => {
+    setMapDate(prev => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + days);
+      return next;
+    });
+  };
+
   useEffect(() => {
     if (activeTab === 'map') {
       void loadMapData();
     }
-  }, [activeTab, isLoggedIn]);
+  }, [activeTab, isLoggedIn, mapDate]);
 
   const topInset = Math.max(insets.top, 12);
   const bottomInset = Math.max(insets.bottom, 28);
@@ -195,7 +298,7 @@ function MainApp() {
         </TouchableOpacity>
 
         <Text style={styles.topTitle}>
-          {activeTab === 'tracking' && 'Visits'}
+          {activeTab === 'tracking' && 'Home'}
           {activeTab === 'booking' && 'Order Booking'}
           {activeTab === 'map' && 'Route Map'}
         </Text>
@@ -203,39 +306,190 @@ function MainApp() {
         <View style={{ width: 32 }} />
       </View>
 
+      {/* Attendance Check-In Card */}
+      <View style={styles.attendanceCard}>
+        <View style={styles.attendanceHeaderRow}>
+          <View style={styles.attendanceIconWrap}>
+            <Ionicons name="time-outline" size={20} color="#10b981" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.attendanceTitle}>Attendance</Text>
+            <Text style={styles.attendanceStatusText}>
+              {attendanceStatus === 'checked-in'
+                ? `Checked In${attendanceTime ? ' at ' + formatAttendanceTime(attendanceTime) : ''}`
+                : 'Not Checked In Yet'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.attendanceBtnRow}>
+          <TouchableOpacity
+            style={[
+              styles.attendanceBtn,
+              attendanceStatus === 'checked-in' ? styles.attendanceBtnDisabled : styles.attendanceBtnIn,
+            ]}
+            onPress={handleAttendanceCheckIn}
+            disabled={attendanceStatus === 'checked-in' || attendanceLoading}
+          >
+            {attendanceLoading && attendanceStatus !== 'checked-in' ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="log-in-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.attendanceBtnText}>Check In</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.attendanceBtn,
+              attendanceStatus === 'checked-in' ? styles.attendanceBtnOut : styles.attendanceBtnDisabled,
+            ]}
+            onPress={handleAttendanceCheckOut}
+            disabled={attendanceStatus !== 'checked-in' || attendanceLoading}
+          >
+            {attendanceLoading && attendanceStatus === 'checked-in' ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="log-out-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.attendanceBtnText}>Check Out</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Screen Content */}
       <View style={styles.content}>
         {activeTab === 'tracking' && <TrackingScreen currentUser={username} />}
         {activeTab === 'booking' && <OrderBookingScreen currentUser={username} />}
-        {activeTab === 'map' && (
-          <View style={styles.mapScreen}>
-            <View style={styles.mapHeader}>
-              <Text style={styles.mapTitle}>Today's Route</Text>
-              <TouchableOpacity onPress={loadMapData} disabled={loadingMap}>
-                <Text style={styles.refreshText}>{loadingMap ? 'Refreshing...' : 'Refresh Route'}</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.mapContainer}>
-              <MobileMap logs={logs} visits={visits} />
-            </View>
-            <View style={styles.recentLogsCard}>
-              <Text style={styles.recentLogsTitle}>Recent GPS Locations</Text>
-              {logs.length === 0 ? (
-                <Text style={styles.recentLogsEmpty}>No GPS points recorded yet for today.</Text>
-              ) : (
-                logs.slice(0, 6).map((log, index) => (
-                  <View key={log.id || `${log.timestamp}-${index}`} style={styles.recentLogItem}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.recentLogCoords}>{log.latitude.toFixed(4)}, {log.longitude.toFixed(4)}</Text>
-                      <Text style={styles.recentLogTime}>{log.timestamp}</Text>
+        {activeTab === 'map' && (() => {
+          const timelineLogs = [...logs].slice(-8).reverse();
+          const isTrackingActive = attendanceStatus === 'checked-in';
+          const gpsIntervalMin = Math.round((clientConfig?.gpsInterval || 900) / 60);
+
+          return (
+            <View style={styles.mapScreen}>
+              <View style={styles.mapHeader}>
+                <Text style={styles.mapTitle}>Today's Route</Text>
+                <TouchableOpacity onPress={() => loadMapData()} disabled={loadingMap}>
+                  <Text style={styles.refreshText}>{loadingMap ? 'Refreshing...' : 'Refresh Route'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.mapContainerFixed}>
+                <MobileMap logs={logs} visits={visits} />
+              </View>
+
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+                {/* GPS Tracking Status Card */}
+                <View style={styles.gpsCard}>
+                  <View style={styles.gpsCardHeaderRow}>
+                    <View style={styles.gpsCardIconWrap}>
+                      <Ionicons name="navigate" size={18} color="#10b981" />
                     </View>
-                    <Ionicons name="location" size={16} color="#10b981" />
+                    <Text style={[styles.gpsCardTitle, { flex: 1 }]}>GPS Tracking</Text>
+                    <View style={[styles.statusPill, isTrackingActive ? styles.statusPillActive : styles.statusPillPaused]}>
+                      <View style={[styles.statusDotSmall, { backgroundColor: isTrackingActive ? '#10b981' : '#f59e0b' }]} />
+                      <Text style={[styles.statusPillText, { color: isTrackingActive ? '#10b981' : '#f59e0b' }]}>
+                        {isTrackingActive ? 'Active' : 'Paused'}
+                      </Text>
+                    </View>
                   </View>
-                ))
-              )}
+
+                  <Text style={styles.gpsCardSubtitle}>
+                    {isTrackingActive
+                      ? `Auto-syncing every ${gpsIntervalMin} min`
+                      : 'Check in from Home to start auto-sync'}
+                  </Text>
+
+                  <View style={styles.gpsStatsRow}>
+                    <View style={styles.gpsStatBox}>
+                      <Text style={styles.gpsStatLabel}>Next auto-sync</Text>
+                      <Text style={[styles.gpsStatValue, { color: isTrackingActive ? '#10b981' : '#f59e0b' }]}>
+                        {isTrackingActive ? `Every ${gpsIntervalMin} min` : 'Paused'}
+                      </Text>
+                    </View>
+                    <View style={styles.gpsStatBox}>
+                      <Text style={styles.gpsStatLabel}>Last recorded</Text>
+                      <Text style={styles.gpsStatValue}>
+                        {timelineLogs[0] ? formatAttendanceTime(timelineLogs[0].timestamp) : '--'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.gpsSyncBtn, !isTrackingActive && styles.gpsSyncBtnDisabled]}
+                    onPress={handleForceSync}
+                    disabled={!isTrackingActive}
+                  >
+                    <Text style={styles.gpsSyncBtnText}>
+                      {isTrackingActive ? 'Sync GPS Now' : 'Sync Disabled (Not Checked In)'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Location Timeline Card */}
+                <View style={styles.timelineCard}>
+                  <View style={styles.timelineHeaderRow}>
+                    <View style={styles.gpsCardIconWrap}>
+                      <Ionicons name="location-outline" size={16} color="#10b981" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.gpsCardTitle}>Location timeline</Text>
+                      <Text style={styles.timelineEntryCount}>
+                        {logs.length} {logs.length === 1 ? 'entry' : 'entries'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.dateNavRow}>
+                    <TouchableOpacity onPress={() => shiftMapDate(-1)} style={styles.dateNavBtn}>
+                      <Ionicons name="chevron-back" size={16} color="#94a3b8" />
+                    </TouchableOpacity>
+                    <View style={styles.datePillDisplay}>
+                      <Ionicons name="calendar-outline" size={12} color="#10b981" style={{ marginRight: 4 }} />
+                      <Text style={styles.datePillDisplayText}>{formatMapDate(mapDate)}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => shiftMapDate(1)} style={styles.dateNavBtn}>
+                      <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {timelineLogs.length === 0 ? (
+                    <Text style={styles.recentLogsEmpty}>No GPS points recorded for this date.</Text>
+                  ) : (
+                    timelineLogs.map((log, index) => {
+                      const rawDistance = log.distanceFromPrevious;
+                      const distanceKm = typeof rawDistance === 'string' ? parseFloat(rawDistance) : rawDistance;
+                      const isStationary = !distanceKm || isNaN(distanceKm) || distanceKm < 0.01;
+
+                      return (
+                        <View key={log.id || `${log.timestamp}-${index}`} style={styles.timelineRow}>
+                          <View style={styles.timelineMarkerCol}>
+                            <View style={[styles.timelineDot, index === 0 && styles.timelineDotActive]} />
+                            {index < timelineLogs.length - 1 && <View style={styles.timelineLine} />}
+                          </View>
+                          <View style={styles.timelineContent}>
+                            <View style={styles.timelineTopRow}>
+                              <Text style={styles.timelineTime}>{formatAttendanceTime(log.timestamp)}</Text>
+                              <Text style={[styles.timelineBadge, isStationary ? styles.timelineBadgeStationary : styles.timelineBadgeMoving]}>
+                                {isStationary ? 'Stationary' : `${(distanceKm as number * 1000).toFixed(0)} m`}
+                              </Text>
+                            </View>
+                            <Text style={styles.timelineCoords}>{log.latitude.toFixed(5)}, {log.longitude.toFixed(5)}</Text>
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </View>
+              </ScrollView>
             </View>
-          </View>
-        )}
+          );
+        })()}
       </View>
 
       {/* Profile Sidebar Drawer Modal */}
@@ -287,9 +541,15 @@ function MainApp() {
                   <Text style={styles.sidebarSectionTitle}>Location Tracking</Text>
                 </View>
                 <Text style={styles.sidebarSectionText}>
-                  Location tracking remains active for field verification and can be synced manually from here.
+                  {attendanceStatus === 'checked-in'
+                    ? 'Location tracking is active for field verification and can be synced manually from here.'
+                    : 'Location tracking starts automatically once you check in for attendance.'}
                 </Text>
-                <TouchableOpacity style={styles.inlineActionBtn} onPress={handleForceSync}>
+                <TouchableOpacity
+                  style={[styles.inlineActionBtn, attendanceStatus !== 'checked-in' && styles.inlineActionBtnDisabled]}
+                  onPress={handleForceSync}
+                  disabled={attendanceStatus !== 'checked-in'}
+                >
                   <Ionicons name="sync-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
                   <Text style={styles.inlineActionText}>Sync GPS Now</Text>
                 </TouchableOpacity>
@@ -432,6 +692,65 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  attendanceCard: {
+    backgroundColor: '#090d16',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    borderRadius: 12,
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  attendanceHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  attendanceIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  attendanceTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  attendanceStatusText: {
+    fontSize: 12.5,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  attendanceBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  attendanceBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 8,
+  },
+  attendanceBtnIn: {
+    backgroundColor: '#10b981',
+  },
+  attendanceBtnOut: {
+    backgroundColor: '#ef4444',
+  },
+  attendanceBtnDisabled: {
+    backgroundColor: '#374151',
+  },
+  attendanceBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13.5,
+  },
   mapScreen: {
     flex: 1,
     padding: 16,
@@ -442,45 +761,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  mapContainer: {
-    flex: 1,
-    minHeight: 240,
-    marginBottom: 10,
-  },
-  recentLogsCard: {
-    backgroundColor: '#111827',
+  mapContainerFixed: {
+    height: 220,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#1f2937',
-    padding: 12,
-  },
-  recentLogsTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
   },
   recentLogsEmpty: {
     color: '#94a3b8',
     fontSize: 12,
-  },
-  recentLogItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#1f2937',
-  },
-  recentLogCoords: {
-    color: '#f8fafc',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  recentLogTime: {
-    color: '#64748b',
-    fontSize: 11,
-    marginTop: 2,
   },
   mapTitle: {
     color: '#ffffff',
@@ -491,6 +780,211 @@ const styles = StyleSheet.create({
     color: '#10b981',
     fontWeight: '700',
     fontSize: 13,
+  },
+  gpsCard: {
+    backgroundColor: '#090d16',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  gpsCardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  gpsCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  gpsCardTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  gpsCardSubtitle: {
+    fontSize: 12.5,
+    color: '#94a3b8',
+    marginBottom: 12,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statusPillActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  statusPillPaused: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  statusDotSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  gpsStatsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  gpsStatBox: {
+    flex: 1,
+    backgroundColor: '#05080e',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    borderRadius: 8,
+    padding: 10,
+  },
+  gpsStatLabel: {
+    fontSize: 10.5,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  gpsStatValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#f8fafc',
+  },
+  gpsSyncBtn: {
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  gpsSyncBtnDisabled: {
+    backgroundColor: '#374151',
+  },
+  gpsSyncBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13.5,
+  },
+  timelineCard: {
+    backgroundColor: '#090d16',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    borderRadius: 12,
+    padding: 14,
+  },
+  timelineHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  timelineEntryCount: {
+    fontSize: 11.5,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  dateNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  dateNavBtn: {
+    padding: 6,
+    backgroundColor: '#05080e',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    borderRadius: 8,
+  },
+  datePillDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#05080e',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  datePillDisplayText: {
+    color: '#e2e8f0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  timelineRow: {
+    flexDirection: 'row',
+  },
+  timelineMarkerCol: {
+    width: 18,
+    alignItems: 'center',
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#334155',
+    backgroundColor: '#090d16',
+    marginTop: 3,
+  },
+  timelineDotActive: {
+    borderColor: '#10b981',
+    backgroundColor: '#10b981',
+  },
+  timelineLine: {
+    width: 1,
+    flex: 1,
+    minHeight: 24,
+    backgroundColor: '#1e293b',
+    marginTop: 2,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 16,
+  },
+  timelineTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timelineTime: {
+    color: '#f8fafc',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  timelineBadge: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  timelineBadgeStationary: {
+    color: '#10b981',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  timelineBadgeMoving: {
+    color: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  timelineCoords: {
+    color: '#64748b',
+    fontSize: 11.5,
+    marginTop: 3,
   },
   modalOverlay: {
     flex: 1,
@@ -608,6 +1102,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
+  },
+  inlineActionBtnDisabled: {
+    backgroundColor: '#374151',
   },
   inlineActionText: {
     color: '#ffffff',

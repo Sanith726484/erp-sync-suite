@@ -46,8 +46,7 @@ export class LocationTracker {
     return this.intervalId !== null;
   }
 
-  public static async trackNow(): Promise<{ latitude: number; longitude: number } | null> {
-    if (!this.currentUser) return null;
+  public static async getCurrentPosition(): Promise<{ latitude: number; longitude: number } | null> {
     try {
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
@@ -59,16 +58,21 @@ export class LocationTracker {
         accuracy: Location.Accuracy.Balanced,
       });
 
-      const lat = loc.coords.latitude;
-      const lng = loc.coords.longitude;
-
-      const client = ErpClientManager.getClient();
-      await client.saveGpsLocation(lat, lng, this.currentUser);
-      
-      return { latitude: lat, longitude: lng };
+      return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
     } catch (err) {
-      console.error('[LocationTracker] Location tracking failed:', err);
+      console.error('[LocationTracker] Failed to get current position:', err);
       return null;
     }
+  }
+
+  public static async trackNow(): Promise<{ latitude: number; longitude: number } | null> {
+    if (!this.currentUser) return null;
+    const pos = await this.getCurrentPosition();
+    if (!pos) return null;
+
+    const client = ErpClientManager.getClient();
+    await client.saveGpsLocation(pos.latitude, pos.longitude, this.currentUser);
+
+    return pos;
   }
 }

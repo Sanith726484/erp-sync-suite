@@ -439,6 +439,124 @@ export class FrappeAdapter {
             return [];
         }
     }
+    async resolveEmployee(username) {
+        try {
+            let user = (username && !username.startsWith('/')) ? username : '';
+            if (!user) {
+                user = await this.getLoggedUser().catch(() => '');
+            }
+            if (!user)
+                return null;
+            const res = await this.client.get('api/method/frappe.client.get_value', {
+                params: {
+                    doctype: 'Employee',
+                    fieldname: JSON.stringify(['name']),
+                    filters: JSON.stringify({ user_id: user }),
+                },
+            });
+            return res.data?.message?.name || null;
+        }
+        catch (err) {
+            console.warn('Failed to resolve Employee record for user:', err);
+            return null;
+        }
+    }
+    async checkInAttendance(lat, lng, user) {
+        const employee = await this.resolveEmployee(user);
+        if (!employee) {
+            throw new Error('No Employee record is linked to your user account. Contact HR to link one.');
+        }
+        try {
+            const now = new Date();
+            const timeStr = now.toISOString().slice(0, 19).replace('T', ' ');
+            const res = await this.client.post('api/resource/Employee Checkin', {
+                employee,
+                log_type: 'IN',
+                time: timeStr,
+                latitude: lat,
+                longitude: lng,
+            });
+            const created = res.data.data;
+            return {
+                id: created.name,
+                employee: created.employee,
+                logType: 'IN',
+                time: created.time,
+                latitude: created.latitude,
+                longitude: created.longitude,
+            };
+        }
+        catch (err) {
+            const errMsg = err.response?.data?.message || err.response?.data?._server_messages || err.message || 'Failed to record attendance check-in';
+            throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
+        }
+    }
+    async checkOutAttendance(lat, lng, user) {
+        const employee = await this.resolveEmployee(user);
+        if (!employee) {
+            throw new Error('No Employee record is linked to your user account. Contact HR to link one.');
+        }
+        try {
+            const now = new Date();
+            const timeStr = now.toISOString().slice(0, 19).replace('T', ' ');
+            const res = await this.client.post('api/resource/Employee Checkin', {
+                employee,
+                log_type: 'OUT',
+                time: timeStr,
+                latitude: lat,
+                longitude: lng,
+            });
+            const created = res.data.data;
+            return {
+                id: created.name,
+                employee: created.employee,
+                logType: 'OUT',
+                time: created.time,
+                latitude: created.latitude,
+                longitude: created.longitude,
+            };
+        }
+        catch (err) {
+            const errMsg = err.response?.data?.message || err.response?.data?._server_messages || err.message || 'Failed to record attendance check-out';
+            throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
+        }
+    }
+    async getTodayAttendanceStatus(user) {
+        const employee = await this.resolveEmployee(user);
+        if (!employee)
+            return null;
+        try {
+            const todayISO = new Date().toISOString().slice(0, 10);
+            const res = await this.client.get('api/resource/Employee Checkin', {
+                params: {
+                    fields: JSON.stringify(['name', 'employee', 'log_type', 'time', 'latitude', 'longitude']),
+                    filters: JSON.stringify([
+                        ['employee', '=', employee],
+                        ['time', '>=', `${todayISO} 00:00:00`],
+                        ['time', '<=', `${todayISO} 23:59:59`],
+                    ]),
+                    order_by: 'time desc',
+                    limit_page_length: 1,
+                },
+            });
+            const data = res.data?.data || [];
+            if (data.length === 0)
+                return null;
+            const item = data[0];
+            return {
+                id: item.name,
+                employee: item.employee,
+                logType: item.log_type,
+                time: item.time,
+                latitude: item.latitude,
+                longitude: item.longitude,
+            };
+        }
+        catch (err) {
+            console.warn('Attendance status query notice (DocType Employee Checkin may not be installed yet):', err.message || err);
+            return null;
+        }
+    }
     async checkInVisit(visit) {
         try {
             const defaultDesc = (visit.description && visit.description.trim())

@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../types';
 export declare class MockAdapter implements ErpAdapter {
     private getStorageItem;
     private setStorageItem;
@@ -25,6 +25,9 @@ export declare class MockAdapter implements ErpAdapter {
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(user: string): Promise<Visit | null>;
     getVisits(user: string, dateISO: string): Promise<Visit[]>;
+    checkInAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
+    checkOutAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
+    getTodayAttendanceStatus(user: string): Promise<AttendanceLog | null>;
     getCompanyBranding(companyName?: string): Promise<CompanyBranding>;
     getDocTypeMeta(doctype: string): Promise<any>;
     getBranches(): Promise<string[]>;

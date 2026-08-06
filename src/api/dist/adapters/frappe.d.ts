@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding, UserProfile } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding, UserProfile, AttendanceLog } from '../types';
 export declare class FrappeAdapter implements ErpAdapter {
     private client;
     private config;
@@ -23,6 +23,10 @@ export declare class FrappeAdapter implements ErpAdapter {
         reason?: string;
     }>;
     getGpsLocationLogs(user: string, dateISO: string): Promise<GpsLog[]>;
+    private resolveEmployee;
+    checkInAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
+    checkOutAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
+    getTodayAttendanceStatus(user: string): Promise<AttendanceLog | null>;
     checkInVisit(visit: Omit<Visit, 'status' | 'id'>): Promise<Visit>;
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(username: string): Promise<Visit | null>;

@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../types';
 
 export class MockAdapter implements ErpAdapter {
   private getStorageItem<T>(key: string, defaultValue: T): T {
@@ -181,6 +181,45 @@ export class MockAdapter implements ErpAdapter {
   async getVisits(user: string, dateISO: string): Promise<Visit[]> {
     const visits = this.getStorageItem<Visit[]>('mock_visits', []);
     return visits.filter(v => v.date === dateISO);
+  }
+
+  async checkInAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog> {
+    const logs = this.getStorageItem<AttendanceLog[]>('mock_attendance_logs', []);
+    const newLog: AttendanceLog = {
+      id: `EC-MOCK-${Math.floor(10000 + Math.random() * 90000)}`,
+      employee: user || this.currentUsername,
+      logType: 'IN',
+      time: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      latitude: lat,
+      longitude: lng,
+    };
+    logs.push(newLog);
+    this.setStorageItem('mock_attendance_logs', logs);
+    return newLog;
+  }
+
+  async checkOutAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog> {
+    const logs = this.getStorageItem<AttendanceLog[]>('mock_attendance_logs', []);
+    const newLog: AttendanceLog = {
+      id: `EC-MOCK-${Math.floor(10000 + Math.random() * 90000)}`,
+      employee: user || this.currentUsername,
+      logType: 'OUT',
+      time: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      latitude: lat,
+      longitude: lng,
+    };
+    logs.push(newLog);
+    this.setStorageItem('mock_attendance_logs', logs);
+    return newLog;
+  }
+
+  async getTodayAttendanceStatus(user: string): Promise<AttendanceLog | null> {
+    const logs = this.getStorageItem<AttendanceLog[]>('mock_attendance_logs', []);
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const userLogs = logs
+      .filter(l => l.employee === (user || this.currentUsername) && l.time.startsWith(todayISO))
+      .sort((a, b) => b.time.localeCompare(a.time));
+    return userLogs[0] || null;
   }
 
   async getCompanyBranding(companyName?: string): Promise<CompanyBranding> {

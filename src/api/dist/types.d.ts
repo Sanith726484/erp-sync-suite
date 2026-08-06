@@ -73,6 +73,14 @@ export interface CompanyBranding {
     splashScreenUrl?: string;
     defaultCurrency?: string;
 }
+export interface AttendanceLog {
+    id?: string;
+    employee: string;
+    logType: 'IN' | 'OUT';
+    time: string;
+    latitude?: number;
+    longitude?: number;
+}
 export interface UserProfile {
     username: string;
     fullName: string;

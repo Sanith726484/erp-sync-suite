@@ -161,6 +161,42 @@ export class MockAdapter {
         const visits = this.getStorageItem('mock_visits', []);
         return visits.filter(v => v.date === dateISO);
     }
+    async checkInAttendance(lat, lng, user) {
+        const logs = this.getStorageItem('mock_attendance_logs', []);
+        const newLog = {
+            id: `EC-MOCK-${Math.floor(10000 + Math.random() * 90000)}`,
+            employee: user || this.currentUsername,
+            logType: 'IN',
+            time: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            latitude: lat,
+            longitude: lng,
+        };
+        logs.push(newLog);
+        this.setStorageItem('mock_attendance_logs', logs);
+        return newLog;
+    }
+    async checkOutAttendance(lat, lng, user) {
+        const logs = this.getStorageItem('mock_attendance_logs', []);
+        const newLog = {
+            id: `EC-MOCK-${Math.floor(10000 + Math.random() * 90000)}`,
+            employee: user || this.currentUsername,
+            logType: 'OUT',
+            time: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            latitude: lat,
+            longitude: lng,
+        };
+        logs.push(newLog);
+        this.setStorageItem('mock_attendance_logs', logs);
+        return newLog;
+    }
+    async getTodayAttendanceStatus(user) {
+        const logs = this.getStorageItem('mock_attendance_logs', []);
+        const todayISO = new Date().toISOString().slice(0, 10);
+        const userLogs = logs
+            .filter(l => l.employee === (user || this.currentUsername) && l.time.startsWith(todayISO))
+            .sort((a, b) => b.time.localeCompare(a.time));
+        return userLogs[0] || null;
+    }
     async getCompanyBranding(companyName) {
         return {
             companyName: companyName || 'Suntek Energy Systems Pvt. Ltd.',

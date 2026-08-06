@@ -52,18 +52,6 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
     return () => clearInterval(timer);
   }, []);
 
-  const ensureTrackingActive = async () => {
-    const isAlreadyActive = LocationTracker.isTrackingActive();
-    if (!isAlreadyActive) {
-      const granted = await LocationTracker.requestPermissions();
-      if (granted) {
-        const config = ErpClientManager.getConfig();
-        const interval = config?.gpsInterval || 900;
-        LocationTracker.startTracking(currentUser, interval);
-      }
-    }
-  };
-
   const loadInitialData = async () => {
     setLoading(true);
     try {
@@ -107,7 +95,6 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
   useEffect(() => {
     loadInitialData();
-    ensureTrackingActive();
   }, []);
 
   useEffect(() => {
@@ -118,7 +105,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
   const handleForceSync = async () => {
     setLoading(true);
-    const p = await LocationTracker.trackNow();
+    const p = await LocationTracker.getCurrentPosition();
     setLoading(false);
     if (p) {
       setCoordsLog(prev => [{ lat: p.latitude, lng: p.longitude, time: new Date().toLocaleTimeString() }, ...prev]);
@@ -143,7 +130,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
       let lat = 0;
       let lng = 0;
-      const p = await LocationTracker.trackNow();
+      const p = await LocationTracker.getCurrentPosition();
       if (p) {
         lat = p.latitude;
         lng = p.longitude;
@@ -182,7 +169,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
       let lat = undefined;
       let lng = undefined;
-      const p = await LocationTracker.trackNow();
+      const p = await LocationTracker.getCurrentPosition();
       if (p) {
         lat = p.latitude;
         lng = p.longitude;
