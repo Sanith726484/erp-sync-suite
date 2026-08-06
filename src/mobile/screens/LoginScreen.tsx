@@ -56,13 +56,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         <View style={styles.toggleRow}>
           <TouchableOpacity 
             style={[styles.toggleBtn, mode === 'mock' && styles.toggleBtnActive]}
-            onClick={() => setMode('mock')}
+            onPress={() => setMode('mock')}
           >
             <Text style={[styles.toggleText, mode === 'mock' && styles.toggleTextActive]}>Demo Mode</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.toggleBtn, mode === 'frappe' && styles.toggleBtnActive]}
-            onClick={() => setMode('frappe')}
+            onPress={() => setMode('frappe')}
           >
             <Text style={[styles.toggleText, mode === 'frappe' && styles.toggleTextActive]}>ERPNext Site</Text>
           </TouchableOpacity>
@@ -112,7 +112,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         <TouchableOpacity 
           style={styles.button}
-          onClick={handleLogin}
+          onPress={handleLogin}
           disabled={loading}
         >
           {loading ? (

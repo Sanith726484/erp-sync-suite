@@ -120,7 +120,7 @@ export const OrderBookingScreen: React.FC = () => {
               <TouchableOpacity
                 key={c.id}
                 style={[styles.selectOption, selectedCustomerId === c.id && styles.selectOptionActive]}
-                onClick={() => setSelectedCustomerId(c.id)}
+                onPress={() => setSelectedCustomerId(c.id)}
               >
                 <Text style={[styles.selectOptionText, selectedCustomerId === c.id && styles.selectOptionTextActive]}>
                   {c.name}
@@ -157,11 +157,11 @@ export const OrderBookingScreen: React.FC = () => {
                 
                 {/* Quantity Controls */}
                 <View style={styles.quantityControl}>
-                  <TouchableOpacity style={styles.qtyBtn} onClick={() => updateCartQty(p.id, -1)}>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => updateCartQty(p.id, -1)}>
                     <Text style={styles.qtyBtnText}>-</Text>
                   </TouchableOpacity>
                   <Text style={styles.qtyText}>{qty}</Text>
-                  <TouchableOpacity style={styles.qtyBtn} onClick={() => updateCartQty(p.id, 1)}>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => updateCartQty(p.id, 1)}>
                     <Text style={styles.qtyBtnText}>+</Text>
                   </TouchableOpacity>
                 </View>
@@ -190,7 +190,7 @@ export const OrderBookingScreen: React.FC = () => {
             <Text style={styles.grandTotalValue}>${calculateGrandTotal().toFixed(2)}</Text>
           </View>
 
-          <TouchableOpacity style={styles.bookBtn} onClick={handleBookOrder} disabled={loading}>
+          <TouchableOpacity style={styles.bookBtn} onPress={handleBookOrder} disabled={loading}>
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (

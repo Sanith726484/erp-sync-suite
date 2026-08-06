@@ -162,7 +162,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
         <View style={styles.btnRow}>
           <TouchableOpacity 
             style={[styles.btn, trackingActive ? styles.btnDanger : styles.btnSuccess]} 
-            onClick={handleToggleTracking}
+            onPress={handleToggleTracking}
           >
             <Text style={styles.btnText}>
               {trackingActive ? 'Suspend Logging' : 'Activate Tracing'}
@@ -171,7 +171,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
           <TouchableOpacity 
             style={styles.btnOutline} 
-            onClick={handleForceSync}
+            onPress={handleForceSync}
             disabled={!trackingActive}
           >
             <Text style={[styles.btnOutlineText, !trackingActive && { opacity: 0.5 }]}>Log Ping Now</Text>
@@ -201,7 +201,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
               numberOfLines={3}
             />
 
-            <TouchableOpacity style={styles.btnPrimary} onClick={handleCheckOut} disabled={loading}>
+            <TouchableOpacity style={styles.btnPrimary} onPress={handleCheckOut} disabled={loading}>
               {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.btnPrimaryText}>Perform Check-Out</Text>}
             </TouchableOpacity>
           </View>
@@ -213,7 +213,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
                 <TouchableOpacity
                   key={c.id}
                   style={[styles.selectOption, selectedCustomerId === c.id && styles.selectOptionActive]}
-                  onClick={() => setSelectedCustomerId(c.id)}
+                  onPress={() => setSelectedCustomerId(c.id)}
                 >
                   <Text style={[styles.selectOptionText, selectedCustomerId === c.id && styles.selectOptionTextActive]}>
                     {c.name}
@@ -231,7 +231,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
               style={styles.input}
             />
 
-            <TouchableOpacity style={styles.btnPrimary} onClick={handleCheckIn} disabled={loading || !selectedCustomerId}>
+            <TouchableOpacity style={styles.btnPrimary} onPress={handleCheckIn} disabled={loading || !selectedCustomerId}>
               {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.btnPrimaryText}>Log Check-In</Text>}
             </TouchableOpacity>
           </View>
