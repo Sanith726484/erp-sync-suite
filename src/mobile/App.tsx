@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image, Alert } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile } from '../api';
@@ -119,6 +119,25 @@ function MainApp() {
     setActiveTab('tracking');
   };
 
+  const handleForceSync = async () => {
+    try {
+      const result = await LocationTracker.trackNow();
+      if (result) {
+        setLogs(prev => [{
+          user: username,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          timestamp: new Date().toISOString(),
+        }, ...prev].slice(0, 12));
+        Alert.alert('GPS Synced', `${result.latitude.toFixed(4)}, ${result.longitude.toFixed(4)}`);
+      } else {
+        Alert.alert('GPS Sync Failed', 'Unable to capture the current location.');
+      }
+    } catch (err) {
+      Alert.alert('GPS Sync Failed', 'Unable to capture the current location.');
+    }
+  };
+
   const loadMapData = async () => {
     if (!isLoggedIn || activeTab !== 'map') return;
     setLoadingMap(true);
@@ -176,9 +195,9 @@ function MainApp() {
         </TouchableOpacity>
 
         <Text style={styles.topTitle}>
-          {activeTab === 'tracking' && 'Location Tracking'}
+          {activeTab === 'tracking' && 'Visits'}
           {activeTab === 'booking' && 'Order Booking'}
-          {activeTab === 'map' && 'Trace Map'}
+          {activeTab === 'map' && 'Route Map'}
         </Text>
 
         <View style={{ width: 32 }} />
@@ -189,14 +208,32 @@ function MainApp() {
         {activeTab === 'tracking' && <TrackingScreen currentUser={username} />}
         {activeTab === 'booking' && <OrderBookingScreen currentUser={username} />}
         {activeTab === 'map' && (
-          <View style={{ flex: 1, padding: 16 }}>
+          <View style={styles.mapScreen}>
             <View style={styles.mapHeader}>
-              <Text style={styles.mapTitle}>Today's Trace Path</Text>
+              <Text style={styles.mapTitle}>Today's Route</Text>
               <TouchableOpacity onPress={loadMapData} disabled={loadingMap}>
                 <Text style={styles.refreshText}>{loadingMap ? 'Refreshing...' : 'Refresh Route'}</Text>
               </TouchableOpacity>
             </View>
-            <MobileMap logs={logs} visits={visits} />
+            <View style={styles.mapContainer}>
+              <MobileMap logs={logs} visits={visits} />
+            </View>
+            <View style={styles.recentLogsCard}>
+              <Text style={styles.recentLogsTitle}>Recent GPS Locations</Text>
+              {logs.length === 0 ? (
+                <Text style={styles.recentLogsEmpty}>No GPS points recorded yet for today.</Text>
+              ) : (
+                logs.slice(0, 6).map((log, index) => (
+                  <View key={log.id || `${log.timestamp}-${index}`} style={styles.recentLogItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.recentLogCoords}>{log.latitude.toFixed(4)}, {log.longitude.toFixed(4)}</Text>
+                      <Text style={styles.recentLogTime}>{log.timestamp}</Text>
+                    </View>
+                    <Ionicons name="location" size={16} color="#10b981" />
+                  </View>
+                ))
+              )}
+            </View>
           </View>
         )}
       </View>
@@ -240,6 +277,22 @@ function MainApp() {
               <View style={styles.companyPill}>
                 <Ionicons name="business" size={14} color="#10b981" />
                 <Text style={styles.companyPillText}>{branding?.companyName || 'ERPNext Site'}</Text>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.sidebarSectionCard}>
+                <View style={styles.sidebarSectionHeader}>
+                  <Ionicons name="navigate-outline" size={18} color="#10b981" />
+                  <Text style={styles.sidebarSectionTitle}>Location Tracking</Text>
+                </View>
+                <Text style={styles.sidebarSectionText}>
+                  Location tracking remains active for field verification and can be synced manually from here.
+                </Text>
+                <TouchableOpacity style={styles.inlineActionBtn} onPress={handleForceSync}>
+                  <Ionicons name="sync-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.inlineActionText}>Sync GPS Now</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.divider} />
@@ -314,7 +367,7 @@ function MainApp() {
             size={22}
             color={activeTab === 'tracking' ? '#10b981' : '#65778a'}
           />
-          <Text style={[styles.tabText, activeTab === 'tracking' && styles.tabTextActive]}>Tracking</Text>
+          <Text style={[styles.tabText, activeTab === 'tracking' && styles.tabTextActive]}>Visits</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -379,11 +432,55 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  mapScreen: {
+    flex: 1,
+    padding: 16,
+  },
   mapHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  mapContainer: {
+    flex: 1,
+    minHeight: 240,
+    marginBottom: 10,
+  },
+  recentLogsCard: {
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    padding: 12,
+  },
+  recentLogsTitle: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  recentLogsEmpty: {
+    color: '#94a3b8',
+    fontSize: 12,
+  },
+  recentLogItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#1f2937',
+  },
+  recentLogCoords: {
+    color: '#f8fafc',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  recentLogTime: {
+    color: '#64748b',
+    fontSize: 11,
+    marginTop: 2,
   },
   mapTitle: {
     color: '#ffffff',
@@ -477,6 +574,45 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#1e293b',
     marginVertical: 16,
+  },
+  sidebarSectionCard: {
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    padding: 12,
+    marginBottom: 12,
+  },
+  sidebarSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  sidebarSectionTitle: {
+    color: '#f8fafc',
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+  sidebarSectionText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  inlineActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10b981',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  inlineActionText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   sectionHeading: {
     fontSize: 12,

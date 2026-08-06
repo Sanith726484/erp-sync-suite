@@ -188,6 +188,10 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
         lng = p.longitude;
       }
 
+      if (!activeVisit.id) {
+        throw new Error('Active visit ID is missing.');
+      }
+
       await client.checkOutVisit(activeVisit.id, description, lat, lng);
       setActiveVisit(null);
       setDescription('');
@@ -215,7 +219,7 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>GPS Attendance & Visits</Text>
+      <Text style={styles.title}>Visits</Text>
 
       {/* Sub-Tab Bar Switcher */}
       <View style={styles.subTabRow}>
@@ -238,35 +242,6 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
       {subTab === 'checkin' ? (
         <>
-          {/* Mandatory Background Route Log Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#10b981" style={{ marginRight: 6 }} />
-                <Text style={styles.cardTitle}>Background Route Tracing</Text>
-              </View>
-              <View style={styles.activePill}>
-                <View style={styles.activeDot} />
-                <Text style={styles.activePillText}>Mandatory Active</Text>
-              </View>
-            </View>
-
-            <Text style={styles.metaText}>
-              Automatic background location tracing is enforced for field team route verification (GPS ping every 15 mins).
-            </Text>
-
-            <TouchableOpacity 
-              style={styles.btnPrimary} 
-              onPress={handleForceSync}
-              disabled={loading}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="sync-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.btnPrimaryText}>Sync GPS Location Now</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
           {/* Active Visit Banner / Check-In Section */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Site Check-In / Check-Out</Text>

@@ -589,47 +589,46 @@ export class FrappeAdapter {
             return [];
         }
     }
-}
-async;
-getCompanyBranding(companyName ?  : string);
-Promise < CompanyBranding > {
-    try: {
-        let, targetCompany = companyName,
-        if(, targetCompany) {
-            const listRes = await this.client.get('api/resource/Company', {
-                params: { limit_page_length: 1 }
+    async getCompanyBranding(companyName) {
+        try {
+            let targetCompany = companyName;
+            if (!targetCompany) {
+                const listRes = await this.client.get('api/resource/Company', {
+                    params: { limit_page_length: 1 }
+                });
+                const companies = listRes.data.data || [];
+                if (companies.length > 0) {
+                    targetCompany = companies[0].name;
+                }
+            }
+            if (!targetCompany) {
+                return { companyName: 'ERPNext' };
+            }
+            const res = await this.client.get(`api/resource/Company/${encodeURIComponent(targetCompany)}`, {
+                params: {
+                    fields: JSON.stringify(['name', 'company_logo', 'custom_mobile_app_icon', 'custom_splash_screen_image', 'default_currency']),
+                }
             });
-            const companies = listRes.data.data || [];
-            if (companies.length > 0) {
-                targetCompany = companies[0].name;
-            }
-        },
-        if(, targetCompany) {
-            return { companyName: 'ERPNext' };
-        },
-        const: res = await this.client.get(`api/resource/Company/${encodeURIComponent(targetCompany)}`, {
-            params: {
-                fields: JSON.stringify(['name', 'company_logo', 'custom_mobile_app_icon', 'custom_splash_screen_image', 'default_currency']),
-            }
-        }),
-        const: data = res.data.data || {},
-        const: makeAbsolute = (url) => {
-            if (!url)
-                return undefined;
-            if (url.startsWith('http://') || url.startsWith('https://'))
-                return url;
-            const base = this.config.host.endsWith('/') ? this.config.host : `${this.config.host}/`;
-            return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
-        },
-        return: {
-            companyName: data.name || targetCompany,
-            logoUrl: makeAbsolute(data.company_logo),
-            appIconUrl: makeAbsolute(data.custom_mobile_app_icon),
-            splashScreenUrl: makeAbsolute(data.custom_splash_screen_image),
-            defaultCurrency: data.default_currency,
+            const data = res.data.data || {};
+            const makeAbsolute = (url) => {
+                if (!url)
+                    return undefined;
+                if (url.startsWith('http://') || url.startsWith('https://'))
+                    return url;
+                const base = this.config.host.endsWith('/') ? this.config.host : `${this.config.host}/`;
+                return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
+            };
+            return {
+                companyName: data.name || targetCompany,
+                logoUrl: makeAbsolute(data.company_logo),
+                appIconUrl: makeAbsolute(data.custom_mobile_app_icon),
+                splashScreenUrl: makeAbsolute(data.custom_splash_screen_image),
+                defaultCurrency: data.default_currency,
+            };
         }
-    }, catch(err) {
-        console.error('Error fetching company branding:', err);
-        return { companyName: companyName || 'ERPNext' };
+        catch (err) {
+            console.error('Error fetching company branding:', err);
+            return { companyName: companyName || 'ERPNext' };
+        }
     }
-};
+}

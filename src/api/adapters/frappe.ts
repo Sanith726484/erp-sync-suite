@@ -634,9 +634,6 @@ export class FrappeAdapter implements ErpAdapter {
       return [];
     }
   }
-      return [];
-    }
-  }
 
   async getCompanyBranding(companyName?: string): Promise<CompanyBranding> {
     try {
