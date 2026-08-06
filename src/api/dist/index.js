@@ -1,29 +1,42 @@
+import { DEFAULT_ERP_CONFIG, DEFAULT_ERP_HOST } from './types';
 import { FrappeAdapter } from './adapters/frappe';
-import { MockAdapter } from './adapters/mock';
 export * from './types';
 export * from './adapters/base';
 export { FrappeAdapter } from './adapters/frappe';
 export { MockAdapter } from './adapters/mock';
 export class ErpClientManager {
     static getConfig() {
-        if (this.activeConfig)
+        if (this.activeConfig) {
+            if (!this.activeConfig.host || this.activeConfig.host === 'https://' || this.activeConfig.host.trim() === '') {
+                this.activeConfig.host = DEFAULT_ERP_HOST;
+            }
             return this.activeConfig;
+        }
         // Check if browser localStorage is available
         if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
             const stored = localStorage.getItem('erp_connection_config');
             if (stored) {
                 try {
-                    this.activeConfig = JSON.parse(stored);
-                    return this.activeConfig;
+                    const parsed = JSON.parse(stored);
+                    if (parsed && typeof parsed === 'object') {
+                        if (!parsed.host || parsed.host === 'https://' || parsed.host.trim() === '') {
+                            parsed.host = DEFAULT_ERP_HOST;
+                        }
+                        this.activeConfig = parsed;
+                        return this.activeConfig;
+                    }
                 }
                 catch {
-                    return null;
+                    // fallback to default
                 }
             }
         }
-        return null;
+        return DEFAULT_ERP_CONFIG;
     }
     static setConfig(config) {
+        if (!config.host || config.host === 'https://' || config.host.trim() === '') {
+            config.host = DEFAULT_ERP_HOST;
+        }
         this.activeConfig = config;
         this.instance = null; // Force recreation on next getClient()
         if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
@@ -41,12 +54,7 @@ export class ErpClientManager {
         if (this.instance)
             return this.instance;
         const config = this.getConfig();
-        if (!config || config.mode === 'mock') {
-            this.instance = new MockAdapter();
-        }
-        else {
-            this.instance = new FrappeAdapter(config);
-        }
+        this.instance = new FrappeAdapter(config);
         return this.instance;
     }
 }

@@ -187,14 +187,56 @@ export const TrackingScreen: React.FC<TrackingScreenProps> = ({ currentUser }) =
 
         {activeVisit ? (
           <View style={styles.activeVisitBlock}>
-            <Text style={styles.activeCustLabel}>Active Visit Partner</Text>
+            <View style={styles.activeVisitHeader}>
+              <View style={styles.activePill}>
+                <View style={[styles.statusDot, styles.dotGreen]} />
+                <Text style={styles.activePillText}>Check-In Active</Text>
+              </View>
+              {activeVisit.id && <Text style={styles.visitIdText}>ID: {activeVisit.id}</Text>}
+            </View>
+
+            <Text style={styles.activeCustLabel}>Active Partner</Text>
             <Text style={styles.activeCustName}>{activeVisit.customer}</Text>
-            <Text style={styles.activeCustTime}>Checked In: {activeVisit.time}</Text>
-            
+
+            {/* Active Visit Data Details Grid */}
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailCard}>
+                <Text style={styles.detailLabel}>Visit Type</Text>
+                <Text style={styles.detailValue}>{activeVisit.visitType || 'Site Visit'}</Text>
+              </View>
+
+              <View style={styles.detailCard}>
+                <Text style={styles.detailLabel}>Check-In Date</Text>
+                <Text style={styles.detailValue}>{activeVisit.date}</Text>
+              </View>
+
+              <View style={styles.detailCard}>
+                <Text style={styles.detailLabel}>Check-In Time</Text>
+                <Text style={styles.detailValue}>{activeVisit.time}</Text>
+              </View>
+
+              <View style={styles.detailCard}>
+                <Text style={styles.detailLabel}>GPS Coords</Text>
+                <Text style={styles.detailValue}>
+                  {activeVisit.latitude && activeVisit.longitude 
+                    ? `${activeVisit.latitude.toFixed(4)}, ${activeVisit.longitude.toFixed(4)}` 
+                    : 'Logged'}
+                </Text>
+              </View>
+            </View>
+
+            {activeVisit.description ? (
+              <View style={styles.notesBox}>
+                <Text style={styles.notesLabel}>Initial Notes:</Text>
+                <Text style={styles.notesText}>{activeVisit.description}</Text>
+              </View>
+            ) : null}
+
+            <Text style={[styles.label, { marginTop: 14 }]}>Check-Out Summary Notes</Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="Enter check-out visit summary..."
+              placeholder="Enter check-out visit outcome..."
               placeholderTextColor="#5a6880"
               style={styles.textarea}
               multiline
@@ -408,22 +450,87 @@ const styles = StyleSheet.create({
   activeVisitBlock: {
     marginTop: 10,
   },
+  activeVisitHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  activePillText: {
+    color: '#10b981',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  visitIdText: {
+    color: '#64748b',
+    fontSize: 11,
+    fontWeight: '600',
+  },
   activeCustLabel: {
     fontSize: 11,
     color: '#65778a',
   },
   activeCustName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#ffffff',
     marginTop: 2,
+    marginBottom: 12,
   },
-  activeCustTime: {
-    fontSize: 12,
-    color: '#10b981',
+  detailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  detailCard: {
+    width: '48%',
+    backgroundColor: '#090d16',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  detailLabel: {
+    fontSize: 10,
+    color: '#64748b',
+    textTransform: 'uppercase',
     fontWeight: '600',
-    marginTop: 4,
-    marginBottom: 16,
+  },
+  detailValue: {
+    fontSize: 12.5,
+    color: '#e2e8f0',
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  notesBox: {
+    backgroundColor: '#090d16',
+    padding: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#10b981',
+    marginVertical: 4,
+  },
+  notesLabel: {
+    fontSize: 11,
+    color: '#10b981',
+    fontWeight: '700',
+  },
+  notesText: {
+    fontSize: 12,
+    color: '#cbd5e1',
+    marginTop: 2,
   },
   formBlock: {
     marginTop: 10,

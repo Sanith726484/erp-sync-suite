@@ -48,49 +48,109 @@ export class FrappeAdapter implements ErpAdapter {
     } catch (err) {
       console.warn('Failed to fetch Frappe session user:', err);
     }
-    return 'Administrator';
+    return this.config.username || '';
   }
 
   async getUserProfile(username: string): Promise<UserProfile> {
-    try {
-      const user = username || await this.getLoggedUser();
-      const res = await this.client.get(`api/resource/User/${encodeURIComponent(user)}`, {
-        params: {
-          fields: JSON.stringify(['name', 'full_name', 'email', 'user_image']),
-        },
-      });
-
-      const data = res.data?.data || {};
-      const makeAbsolute = (url?: string) => {
-        if (!url) return undefined;
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        const base = this.config.host.endsWith('/') ? this.config.host : `${this.config.host}/`;
-        return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
-      };
-
-      return {
-        username: data.name || user,
-        fullName: data.full_name || user,
-        email: data.email || (data.name?.includes('@') ? data.name : user),
-        userImage: makeAbsolute(data.user_image),
-      };
-    } catch (err) {
-      console.warn('Failed to fetch User profile from Frappe:', err);
-      return {
-        username,
-        fullName: username.includes('@') ? username.split('@')[0].replace(/[._-]/g, ' ') : username,
-        email: username.includes('@') ? username : `${username}@frappe.cloud`,
-      };
+    // 1. Resolve user ID/email
+    let user = (username && !username.startsWith('/')) ? username : '';
+    if (!user) {
+      user = await this.getLoggedUser();
     }
+    if (!user || user.startsWith('/')) {
+      user = this.config.username || '';
+    }
+
+    const fields = ['name', 'full_name', 'email', 'user_image', 'mobile_no', 'phone', 'role_profile_name', 'user_type', 'time_zone'];
+
+    const makeAbsolute = (url?: string) => {
+      if (!url) return undefined;
+      if (url.startsWith('http://') || url.startsWith('https://')) return url;
+      const base = this.config.host.endsWith('/') ? this.config.host : `${this.config.host}/`;
+      return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
+    };
+
+    // 2. Query via frappe.client.get_value (accessible to standard logged-in users)
+    if (user) {
+      try {
+        const res = await this.client.get('api/method/frappe.client.get_value', {
+          params: {
+            doctype: 'User',
+            fieldname: JSON.stringify(fields),
+            filters: JSON.stringify({ name: user }),
+          },
+        });
+
+        const data = res.data?.message;
+        if (data && (data.name || data.email || data.full_name)) {
+          const resolvedUser = data.name || data.email || user;
+          return {
+            username: resolvedUser,
+            fullName: data.full_name || data.name || resolvedUser,
+            email: data.email || (resolvedUser.includes('@') ? resolvedUser : user),
+            userImage: makeAbsolute(data.user_image),
+            mobileNo: data.mobile_no || data.phone || undefined,
+            roleProfile: data.role_profile_name || undefined,
+            userType: data.user_type || undefined,
+            timeZone: data.time_zone || undefined,
+          };
+        }
+      } catch (err) {
+        console.warn('frappe.client.get_value User query warning:', err);
+      }
+
+      // 3. Query via resource API fallback
+      try {
+        const res = await this.client.get(`api/resource/User/${encodeURIComponent(user)}`, {
+          params: {
+            fields: JSON.stringify(fields),
+          },
+        });
+
+        const data = res.data?.data;
+        if (data && (data.name || data.email || data.full_name)) {
+          const resolvedUser = data.name || data.email || user;
+          return {
+            username: resolvedUser,
+            fullName: data.full_name || data.name || resolvedUser,
+            email: data.email || (resolvedUser.includes('@') ? resolvedUser : user),
+            userImage: makeAbsolute(data.user_image),
+            mobileNo: data.mobile_no || data.phone || undefined,
+            roleProfile: data.role_profile_name || undefined,
+            userType: data.user_type || undefined,
+            timeZone: data.time_zone || undefined,
+          };
+        }
+      } catch (err) {
+        console.warn('Direct User resource API warning:', err);
+      }
+    }
+
+    // 4. Client-side clean fallback
+    const cleanUser = (user && !user.startsWith('/')) 
+      ? user 
+      : ((username && !username.startsWith('/')) ? username : (this.config.username || 'Field User'));
+    
+    const formattedName = cleanUser.includes('@') 
+      ? cleanUser.split('@')[0].replace(/[._-]/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      : cleanUser;
+
+    return {
+      username: cleanUser,
+      fullName: formattedName,
+      email: cleanUser.includes('@') ? cleanUser : `${cleanUser.toLowerCase()}@frappe.cloud`,
+    };
   }
 
   async login(username: string, password?: string): Promise<{ token: string; username: string }> {
     try {
+      this.config.username = username;
       if (this.config.apiKey && this.config.apiSecret) {
         // If API key is configured, verify connection is active
         await this.testConnection();
         const sessionUser = await this.getLoggedUser();
-        return { token: `${this.config.apiKey}:${this.config.apiSecret}`, username: sessionUser || username };
+        const validUser = (sessionUser && !sessionUser.startsWith('/')) ? sessionUser : username;
+        return { token: `${this.config.apiKey}:${this.config.apiSecret}`, username: validUser };
       }
 
       if (!password) {
@@ -104,7 +164,8 @@ export class FrappeAdapter implements ErpAdapter {
 
       // Frappe sets SID cookie on successful login. Fetch actual session user.
       const sessionUser = await this.getLoggedUser();
-      return { token: 'session_cookie', username: sessionUser || username };
+      const validUser = (sessionUser && !sessionUser.startsWith('/')) ? sessionUser : username;
+      return { token: 'session_cookie', username: validUser };
     } catch (err: any) {
       const errMsg = err.response?.data?.message || err.message || 'Login failed';
       throw new Error(errMsg);
@@ -381,20 +442,27 @@ export class FrappeAdapter implements ErpAdapter {
     }
   }
 
-  async getActiveVisit(user: string): Promise<Visit | null> {
+  async getActiveVisit(username: string): Promise<Visit | null> {
     try {
+      let user = (username && !username.startsWith('/')) ? username : '';
+      if (!user) {
+        user = await this.getLoggedUser().catch(() => '');
+      }
+
+      const filters: any[] = [['status', '=', 'Checked In']];
+      if (user && !user.startsWith('/')) {
+        filters.push(['owner', '=', user]);
+      }
+
       const res = await this.client.get('api/resource/Visit', {
         params: {
           fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description', 'status']),
-          filters: JSON.stringify([
-            ['owner', '=', user],
-            ['status', '=', 'Checked In'],
-          ]),
+          filters: JSON.stringify(filters),
           limit_page_length: 1,
         },
       });
 
-      const data = res.data.data || [];
+      const data = res.data?.data || [];
       if (data.length === 0) return null;
 
       const item = data[0];
@@ -409,27 +477,34 @@ export class FrappeAdapter implements ErpAdapter {
         description: item.description,
         status: 'Checked In',
       };
-    } catch (err) {
-      console.error('Error fetching active visit:', err);
+    } catch (err: any) {
+      console.warn('Active visit query notice (DocType Visit may not be installed yet):', err.message || err);
       return null;
     }
   }
 
-  async getVisits(user: string, dateISO: string): Promise<Visit[]> {
+  async getVisits(username: string, dateISO: string): Promise<Visit[]> {
     try {
+      let user = (username && !username.startsWith('/')) ? username : '';
+      if (!user) {
+        user = await this.getLoggedUser().catch(() => '');
+      }
+
+      const filters: any[] = [['date', '=', dateISO]];
+      if (user && !user.startsWith('/')) {
+        filters.push(['owner', '=', user]);
+      }
+
       const res = await this.client.get('api/resource/Visit', {
         params: {
           fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description', 'status']),
-          filters: JSON.stringify([
-            ['owner', '=', user],
-            ['date', '=', dateISO],
-          ]),
+          filters: JSON.stringify(filters),
           limit_page_length: 100,
           order_by: 'time asc',
         },
       });
 
-      const data = res.data.data || [];
+      const data = res.data?.data || [];
       return data.map((item: any) => ({
         id: item.name,
         customer: item.customer,
@@ -441,8 +516,8 @@ export class FrappeAdapter implements ErpAdapter {
         description: item.description,
         status: item.status as any,
       }));
-    } catch (err) {
-      console.error('Error fetching visits:', err);
+    } catch (err: any) {
+      console.warn('Visits query notice:', err.message || err);
       return [];
     }
   }

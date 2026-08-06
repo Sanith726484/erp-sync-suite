@@ -1,3 +1,4 @@
+export declare const DEFAULT_ERP_HOST = "https://suntek-dev.m.frappe.cloud";
 export interface ErpConnectionConfig {
     host: string;
     username?: string;
@@ -7,6 +8,7 @@ export interface ErpConnectionConfig {
     mode: 'frappe' | 'mock';
     gpsInterval?: number;
 }
+export declare const DEFAULT_ERP_CONFIG: ErpConnectionConfig;
 export interface Customer {
     id: string;
     name: string;
@@ -69,4 +71,8 @@ export interface UserProfile {
     fullName: string;
     email: string;
     userImage?: string;
+    mobileNo?: string;
+    roleProfile?: string;
+    userType?: string;
+    timeZone?: string;
 }

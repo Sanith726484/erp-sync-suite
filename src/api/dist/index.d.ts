@@ -7,7 +7,7 @@ export { MockAdapter } from './adapters/mock';
 export declare class ErpClientManager {
     private static instance;
     private static activeConfig;
-    static getConfig(): ErpConnectionConfig | null;
+    static getConfig(): ErpConnectionConfig;
     static setConfig(config: ErpConnectionConfig): void;
     static clearConfig(): void;
     static getClient(): ErpAdapter;

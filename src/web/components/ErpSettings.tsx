@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ErpClientManager, ErpConnectionConfig } from 'api';
+import { ErpClientManager, ErpConnectionConfig, DEFAULT_ERP_HOST } from 'api';
 import { Database, Link, Key, ShieldCheck, HelpCircle, Server } from 'lucide-react';
 
 interface ErpSettingsProps {
@@ -7,10 +7,10 @@ interface ErpSettingsProps {
 }
 
 export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => {
-  const [host, setHost] = useState('');
+  const [host, setHost] = useState(DEFAULT_ERP_HOST);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
-  const [mode, setMode] = useState<'frappe' | 'mock'>('mock');
+  const [mode, setMode] = useState<'frappe' | 'mock'>('frappe');
   const [gpsInterval, setGpsInterval] = useState(60);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -18,10 +18,10 @@ export const ErpSettings: React.FC<ErpSettingsProps> = ({ onConfigChanged }) => 
   useEffect(() => {
     const config = ErpClientManager.getConfig();
     if (config) {
-      setHost(config.host || '');
+      setHost(config.host || DEFAULT_ERP_HOST);
       setApiKey(config.apiKey || '');
       setApiSecret(config.apiSecret || '');
-      setMode(config.mode || 'mock');
+      setMode('frappe');
       setGpsInterval(config.gpsInterval || 60);
     }
   }, []);

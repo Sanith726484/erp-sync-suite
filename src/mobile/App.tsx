@@ -24,8 +24,8 @@ const getUserDisplayName = (user: string): string => {
 const getUserEmail = (user: string, company?: string): string => {
   if (!user || user.startsWith('/')) return 'administrator@erpnext.com';
   if (user.includes('@')) return user;
-  const domain = company 
-    ? company.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com' 
+  const domain = company
+    ? company.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'
     : 'erpnext.com';
   const slug = user.toLowerCase().replace(/[^a-z0-9]/g, '.');
   return `${slug}@${domain}`;
@@ -61,8 +61,8 @@ function MainApp() {
         sessionUser = await client.getLoggedUser().catch(() => null);
       }
 
-      const targetUser = (sessionUser && typeof sessionUser === 'string' && !sessionUser.startsWith('/')) 
-        ? sessionUser 
+      const targetUser = (sessionUser && typeof sessionUser === 'string' && !sessionUser.startsWith('/'))
+        ? sessionUser
         : username;
 
       let brandingData: CompanyBranding | null = null;
@@ -158,8 +158,8 @@ function MainApp() {
 
       {/* Top Floating Bar with Profile Icon */}
       <View style={styles.topBar}>
-        <TouchableOpacity 
-          style={styles.profileBtn} 
+        <TouchableOpacity
+          style={styles.profileBtn}
           onPress={() => setIsSidebarOpen(true)}
           activeOpacity={0.7}
         >
@@ -200,12 +200,12 @@ function MainApp() {
         onRequestClose={() => setIsSidebarOpen(false)}
       >
         <View style={styles.modalOverlay}>
-          <TouchableOpacity 
-            style={styles.backdropTouch} 
-            activeOpacity={1} 
-            onPress={() => setIsSidebarOpen(false)} 
+          <TouchableOpacity
+            style={styles.backdropTouch}
+            activeOpacity={1}
+            onPress={() => setIsSidebarOpen(false)}
           />
-          
+
           <View style={[styles.sidebarDrawer, { paddingTop: topInset + 10, paddingBottom: bottomInset + 10 }]}>
             <View style={styles.sidebarHeader}>
               <View style={styles.avatarLarge}>
@@ -216,8 +216,8 @@ function MainApp() {
                 )}
               </View>
 
-              <TouchableOpacity 
-                style={styles.closeBtn} 
+              <TouchableOpacity
+                style={styles.closeBtn}
                 onPress={() => setIsSidebarOpen(false)}
               >
                 <Ionicons name="close" size={24} color="#94a3b8" />
@@ -227,7 +227,7 @@ function MainApp() {
             <ScrollView style={styles.sidebarBody} showsVerticalScrollIndicator={false}>
               <Text style={styles.sidebarName}>{userProfile?.fullName || displayName}</Text>
               <Text style={styles.sidebarEmail}>{userProfile?.email || userEmail}</Text>
-              
+
               <View style={styles.companyPill}>
                 <Ionicons name="business" size={14} color="#10b981" />
                 <Text style={styles.companyPillText}>{branding?.companyName || 'ERPNext Site'}</Text>
@@ -235,29 +235,69 @@ function MainApp() {
 
               <View style={styles.divider} />
 
-              <Text style={styles.sectionHeading}>Account & Connection</Text>
+              <Text style={styles.sectionHeading}>Account & Profile Details</Text>
 
               <View style={styles.infoRow}>
                 <Ionicons name="person-outline" size={18} color="#64748b" />
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>User ID / Username</Text>
-                  <Text style={styles.infoValue}>{(!username || username.startsWith('/')) ? displayName : username}</Text>
+                  <Text style={styles.infoValue}>{userProfile?.username || username || 'N/A'}</Text>
                 </View>
               </View>
+
+              {userProfile?.mobileNo ? (
+                <View style={styles.infoRow}>
+                  <Ionicons name="call-outline" size={18} color="#64748b" />
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoLabel}>Mobile Number</Text>
+                    <Text style={styles.infoValue}>{userProfile.mobileNo}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {userProfile?.roleProfile || userProfile?.userType ? (
+                <View style={styles.infoRow}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color="#64748b" />
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoLabel}>Role / User Type</Text>
+                    <Text style={styles.infoValue}>{userProfile.roleProfile || userProfile.userType}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {userProfile?.timeZone ? (
+                <View style={styles.infoRow}>
+                  <Ionicons name="time-outline" size={18} color="#64748b" />
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoLabel}>Time Zone</Text>
+                    <Text style={styles.infoValue}>{userProfile.timeZone}</Text>
+                  </View>
+                </View>
+              ) : null}
 
               <View style={styles.infoRow}>
                 <Ionicons name="server-outline" size={18} color="#64748b" />
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>ERP Host Server</Text>
-                  <Text style={styles.infoValue} numberOfLines={1}>{clientConfig?.host || 'Local Mock Server'}</Text>
+                  <Text style={styles.infoValue} numberOfLines={1}>{clientConfig?.host || 'ERPNext Site'}</Text>
                 </View>
               </View>
+
+              {branding?.defaultCurrency ? (
+                <View style={styles.infoRow}>
+                  <Ionicons name="cash-outline" size={18} color="#64748b" />
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoLabel}>Default Currency</Text>
+                    <Text style={styles.infoValue}>{branding.defaultCurrency}</Text>
+                  </View>
+                </View>
+              ) : null}
 
               <View style={styles.infoRow}>
                 <Ionicons name="hardware-chip-outline" size={18} color="#64748b" />
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>App Version</Text>
-                  <Text style={styles.infoValue}>1.0.0 (Expo SDK 56)</Text>
+                  <Text style={styles.infoValue}>1.0.0</Text>
                 </View>
               </View>
 
@@ -274,38 +314,38 @@ function MainApp() {
 
       {/* Navigation tabs footer menu */}
       <View style={[styles.tabBar, { paddingBottom: bottomInset, height: 58 + bottomInset }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tabItem, activeTab === 'tracking' && styles.tabItemActive]}
           onPress={() => setActiveTab('tracking')}
         >
-          <Ionicons 
-            name={activeTab === 'tracking' ? 'location' : 'location-outline'} 
-            size={22} 
-            color={activeTab === 'tracking' ? '#10b981' : '#65778a'} 
+          <Ionicons
+            name={activeTab === 'tracking' ? 'location' : 'location-outline'}
+            size={22}
+            color={activeTab === 'tracking' ? '#10b981' : '#65778a'}
           />
           <Text style={[styles.tabText, activeTab === 'tracking' && styles.tabTextActive]}>Tracking</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tabItem, activeTab === 'booking' && styles.tabItemActive]}
           onPress={() => setActiveTab('booking')}
         >
-          <Ionicons 
-            name={activeTab === 'booking' ? 'cart' : 'cart-outline'} 
-            size={22} 
-            color={activeTab === 'booking' ? '#10b981' : '#65778a'} 
+          <Ionicons
+            name={activeTab === 'booking' ? 'cart' : 'cart-outline'}
+            size={22}
+            color={activeTab === 'booking' ? '#10b981' : '#65778a'}
           />
           <Text style={[styles.tabText, activeTab === 'booking' && styles.tabTextActive]}>Book Order</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tabItem, activeTab === 'map' && styles.tabItemActive]}
           onPress={() => setActiveTab('map')}
         >
-          <Ionicons 
-            name={activeTab === 'map' ? 'map' : 'map-outline'} 
-            size={22} 
-            color={activeTab === 'map' ? '#10b981' : '#65778a'} 
+          <Ionicons
+            name={activeTab === 'map' ? 'map' : 'map-outline'}
+            size={22}
+            color={activeTab === 'map' ? '#10b981' : '#65778a'}
           />
           <Text style={[styles.tabText, activeTab === 'map' && styles.tabTextActive]}>View Map</Text>
         </TouchableOpacity>

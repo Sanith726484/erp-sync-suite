@@ -22,7 +22,7 @@ export declare class FrappeAdapter implements ErpAdapter {
     getGpsLocationLogs(user: string, dateISO: string): Promise<GpsLog[]>;
     checkInVisit(visit: Omit<Visit, 'status' | 'id'>): Promise<Visit>;
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
-    getActiveVisit(user: string): Promise<Visit | null>;
-    getVisits(user: string, dateISO: string): Promise<Visit[]>;
+    getActiveVisit(username: string): Promise<Visit | null>;
+    getVisits(username: string, dateISO: string): Promise<Visit[]>;
     getCompanyBranding(companyName?: string): Promise<CompanyBranding>;
 }
