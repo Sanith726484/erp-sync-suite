@@ -458,16 +458,8 @@ export class FrappeAdapter {
                 remarks: defaultDesc,
                 status: 'Checked In',
             };
-            let created = null;
-            try {
-                const res = await this.client.post('api/resource/Visit', payload);
-                created = res.data.data;
-            }
-            catch (postErr) {
-                // Fallback to Visit doctype
-                const res = await this.client.post('api/resource/Visit', payload);
-                created = res.data.data;
-            }
+            const res = await this.client.post('api/resource/Visit', payload);
+            const created = res.data.data;
             return {
                 id: created.name,
                 customer: created.customer,
@@ -491,7 +483,7 @@ export class FrappeAdapter {
             const dateStr = now.toISOString().slice(0, 10);
             const timeStr = now.toTimeString().slice(0, 8);
             const notes = (description && description.trim()) ? description : '';
-            const fullPayload = {
+            const payload = {
                 status: 'Checked Out',
                 checkout_date: dateStr,
                 checkout_time: timeStr,
@@ -501,34 +493,8 @@ export class FrappeAdapter {
                 ...(lat && lat !== 0 ? { checkout_latitude: lat } : {}),
                 ...(lng && lng !== 0 ? { checkout_longitude: lng } : {}),
             };
-            let updated = null;
-            try {
-                const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, fullPayload);
-                updated = res.data.data;
-            }
-            catch (putErr) {
-                try {
-                    // Fallback 1: Try Visit resource
-                    const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, fullPayload);
-                    updated = res.data.data;
-                }
-                catch (e1) {
-                    try {
-                        // Fallback 2: Standard status + remarks without custom date/time fields
-                        const midPayload = {
-                            status: 'Checked Out',
-                            ...(notes ? { remarks: notes } : {}),
-                        };
-                        const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, midPayload);
-                        updated = res.data.data;
-                    }
-                    catch (e2) {
-                        // Fallback 3: Base status update ONLY
-                        const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, { status: 'Checked Out' });
-                        updated = res.data.data;
-                    }
-                }
-            }
+            const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, payload);
+            const updated = res.data.data;
             return {
                 id: updated.name,
                 customer: updated.customer,
@@ -597,30 +563,15 @@ export class FrappeAdapter {
             if (user && !user.startsWith('/')) {
                 filters.push(['owner', '=', user]);
             }
-            let data = [];
-            try {
-                const res = await this.client.get('api/resource/Visit', {
-                    params: {
-                        fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description']),
-                        filters: JSON.stringify(filters),
-                        limit_page_length: 100,
-                        order_by: 'creation desc',
-                    },
-                });
-                data = res.data?.data || [];
-            }
-            catch (e) {
-                // Fallback to Visit doctype
-                const res = await this.client.get('api/resource/Visit', {
-                    params: {
-                        fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description']),
-                        filters: JSON.stringify(filters),
-                        limit_page_length: 100,
-                        order_by: 'creation desc',
-                    },
-                });
-                data = res.data?.data || [];
-            }
+            const res = await this.client.get('api/resource/Visit', {
+                params: {
+                    fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description']),
+                    filters: JSON.stringify(filters),
+                    limit_page_length: 100,
+                    order_by: 'creation desc',
+                },
+            });
+            const data = res.data?.data || [];
             return data.map((item) => ({
                 id: item.name,
                 customer: item.customer,
@@ -638,46 +589,47 @@ export class FrappeAdapter {
             return [];
         }
     }
-    async getCompanyBranding(companyName) {
-        try {
-            let targetCompany = companyName;
-            if (!targetCompany) {
-                const listRes = await this.client.get('api/resource/Company', {
-                    params: { limit_page_length: 1 }
-                });
-                const companies = listRes.data.data || [];
-                if (companies.length > 0) {
-                    targetCompany = companies[0].name;
-                }
-            }
-            if (!targetCompany) {
-                return { companyName: 'ERPNext' };
-            }
-            const res = await this.client.get(`api/resource/Company/${encodeURIComponent(targetCompany)}`, {
-                params: {
-                    fields: JSON.stringify(['name', 'company_logo', 'custom_mobile_app_icon', 'custom_splash_screen_image', 'default_currency']),
-                }
-            });
-            const data = res.data.data || {};
-            const makeAbsolute = (url) => {
-                if (!url)
-                    return undefined;
-                if (url.startsWith('http://') || url.startsWith('https://'))
-                    return url;
-                const base = this.config.host.endsWith('/') ? this.config.host : `${this.config.host}/`;
-                return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
-            };
-            return {
-                companyName: data.name || targetCompany,
-                logoUrl: makeAbsolute(data.company_logo),
-                appIconUrl: makeAbsolute(data.custom_mobile_app_icon),
-                splashScreenUrl: makeAbsolute(data.custom_splash_screen_image),
-                defaultCurrency: data.default_currency,
-            };
-        }
-        catch (err) {
-            console.error('Error fetching company branding:', err);
-            return { companyName: companyName || 'ERPNext' };
-        }
-    }
 }
+async;
+getCompanyBranding(companyName ?  : string);
+Promise < CompanyBranding > {
+    try: {
+        let, targetCompany = companyName,
+        if(, targetCompany) {
+            const listRes = await this.client.get('api/resource/Company', {
+                params: { limit_page_length: 1 }
+            });
+            const companies = listRes.data.data || [];
+            if (companies.length > 0) {
+                targetCompany = companies[0].name;
+            }
+        },
+        if(, targetCompany) {
+            return { companyName: 'ERPNext' };
+        },
+        const: res = await this.client.get(`api/resource/Company/${encodeURIComponent(targetCompany)}`, {
+            params: {
+                fields: JSON.stringify(['name', 'company_logo', 'custom_mobile_app_icon', 'custom_splash_screen_image', 'default_currency']),
+            }
+        }),
+        const: data = res.data.data || {},
+        const: makeAbsolute = (url) => {
+            if (!url)
+                return undefined;
+            if (url.startsWith('http://') || url.startsWith('https://'))
+                return url;
+            const base = this.config.host.endsWith('/') ? this.config.host : `${this.config.host}/`;
+            return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
+        },
+        return: {
+            companyName: data.name || targetCompany,
+            logoUrl: makeAbsolute(data.company_logo),
+            appIconUrl: makeAbsolute(data.custom_mobile_app_icon),
+            splashScreenUrl: makeAbsolute(data.custom_splash_screen_image),
+            defaultCurrency: data.default_currency,
+        }
+    }, catch(err) {
+        console.error('Error fetching company branding:', err);
+        return { companyName: companyName || 'ERPNext' };
+    }
+};

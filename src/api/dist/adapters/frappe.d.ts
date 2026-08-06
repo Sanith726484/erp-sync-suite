@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding, UserProfile } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, UserProfile } from '../types';
 export declare class FrappeAdapter implements ErpAdapter {
     private client;
     private config;
@@ -27,5 +27,6 @@ export declare class FrappeAdapter implements ErpAdapter {
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(username: string): Promise<Visit | null>;
     getVisits(username: string, dateISO?: string): Promise<Visit[]>;
-    getCompanyBranding(companyName?: string): Promise<CompanyBranding>;
+    return: any;
+    []: any;
 }
