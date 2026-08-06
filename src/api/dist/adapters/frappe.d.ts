@@ -13,7 +13,10 @@ export declare class FrappeAdapter implements ErpAdapter {
     }>;
     getCustomers(): Promise<Customer[]>;
     getProducts(): Promise<Product[]>;
+    getBranches(): Promise<string[]>;
+    getStates(): Promise<string[]>;
     getOrders(user?: string): Promise<Order[]>;
+    getDocTypeMeta(doctype: string): Promise<any>;
     createOrder(order: Order): Promise<Order>;
     saveGpsLocation(lat: number, lng: number, user: string): Promise<{
         status: string;
@@ -23,6 +26,6 @@ export declare class FrappeAdapter implements ErpAdapter {
     checkInVisit(visit: Omit<Visit, 'status' | 'id'>): Promise<Visit>;
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(username: string): Promise<Visit | null>;
-    getVisits(username: string, dateISO: string): Promise<Visit[]>;
+    getVisits(username: string, dateISO?: string): Promise<Visit[]>;
     getCompanyBranding(companyName?: string): Promise<CompanyBranding>;
 }

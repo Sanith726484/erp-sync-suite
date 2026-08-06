@@ -2,12 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile } from 'api';
+import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile } from '../api';
 import { LoginScreen } from './screens/LoginScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { OrderBookingScreen } from './screens/OrderBookingScreen';
 import { MobileMap } from './components/MobileMap';
 import { LocationTracker } from './services/LocationTracker';
+
+// Enable Network inspection in Expo Go / React Native DevTools
+if (__DEV__) {
+  // @ts-ignore
+  if (global.originalXMLHttpRequest) {
+    // @ts-ignore
+    global.XMLHttpRequest = global.originalXMLHttpRequest;
+  }
+}
 
 // Helper functions for user formatting
 const getUserDisplayName = (user: string): string => {
@@ -178,7 +187,7 @@ function MainApp() {
       {/* Screen Content */}
       <View style={styles.content}>
         {activeTab === 'tracking' && <TrackingScreen currentUser={username} />}
-        {activeTab === 'booking' && <OrderBookingScreen />}
+        {activeTab === 'booking' && <OrderBookingScreen currentUser={username} />}
         {activeTab === 'map' && (
           <View style={{ flex: 1, padding: 16 }}>
             <View style={styles.mapHeader}>
@@ -237,14 +246,6 @@ function MainApp() {
 
               <Text style={styles.sectionHeading}>Account & Profile Details</Text>
 
-              <View style={styles.infoRow}>
-                <Ionicons name="person-outline" size={18} color="#64748b" />
-                <View style={styles.infoCol}>
-                  <Text style={styles.infoLabel}>User ID / Username</Text>
-                  <Text style={styles.infoValue}>{userProfile?.username || username || 'N/A'}</Text>
-                </View>
-              </View>
-
               {userProfile?.mobileNo ? (
                 <View style={styles.infoRow}>
                   <Ionicons name="call-outline" size={18} color="#64748b" />
@@ -278,20 +279,10 @@ function MainApp() {
               <View style={styles.infoRow}>
                 <Ionicons name="server-outline" size={18} color="#64748b" />
                 <View style={styles.infoCol}>
-                  <Text style={styles.infoLabel}>ERP Host Server</Text>
+                  <Text style={styles.infoLabel}>ERP Site</Text>
                   <Text style={styles.infoValue} numberOfLines={1}>{clientConfig?.host || 'ERPNext Site'}</Text>
                 </View>
               </View>
-
-              {branding?.defaultCurrency ? (
-                <View style={styles.infoRow}>
-                  <Ionicons name="cash-outline" size={18} color="#64748b" />
-                  <View style={styles.infoCol}>
-                    <Text style={styles.infoLabel}>Default Currency</Text>
-                    <Text style={styles.infoValue}>{branding.defaultCurrency}</Text>
-                  </View>
-                </View>
-              ) : null}
 
               <View style={styles.infoRow}>
                 <Ionicons name="hardware-chip-outline" size={18} color="#64748b" />

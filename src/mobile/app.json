@@ -37,7 +37,6 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      "expo-status-bar",
       [
         "expo-splash-screen",
         {
@@ -45,8 +44,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#090d16"
         }
-      ],
-      "expo-font"
+      ]
     ]
   }
 }

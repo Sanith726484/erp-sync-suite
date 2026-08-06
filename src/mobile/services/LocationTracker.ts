@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { ErpClientManager } from 'api';
+import { ErpClientManager } from '../../api';
 
 export class LocationTracker {
   private static intervalId: any = null;

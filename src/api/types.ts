@@ -43,9 +43,16 @@ export interface Order {
   customer: string;
   customerName?: string;
   transactionDate: string;
+  deliveryDate?: string;
+  branch?: string;
+  state?: string;
+  loanApproved?: string;
+  typeOfProperty?: string;
+  notes?: string;
   items: OrderItem[];
   grandTotal: number;
   status?: string;
+  docstatus?: 0 | 1;
   currency?: string;
   baseCurrency?: string;
   baseGrandTotal?: number;

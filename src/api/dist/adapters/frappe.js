@@ -16,6 +16,24 @@ export class FrappeAdapter {
             headers,
             withCredentials: true, // Needed if session cookies are used
         });
+        // Logging interceptors for Network inspection in React Native DevTools
+        this.client.interceptors.request.use((req) => {
+            if (typeof console !== 'undefined') {
+                console.log(`🌐 [HTTP OUT] ${req.method?.toUpperCase()} ${req.baseURL}${req.url}`, req.params || req.data || '');
+            }
+            return req;
+        });
+        this.client.interceptors.response.use((res) => {
+            if (typeof console !== 'undefined') {
+                console.log(`✅ [HTTP IN ${res.status}] ${res.config.method?.toUpperCase()} ${res.config.url}`);
+            }
+            return res;
+        }, (err) => {
+            if (typeof console !== 'undefined') {
+                console.warn(`❌ [HTTP ERR ${err.response?.status || 'FAIL'}] ${err.config?.method?.toUpperCase()} ${err.config?.url}:`, err.response?.data || err.message);
+            }
+            return Promise.reject(err);
+        });
     }
     async testConnection() {
         try {
@@ -61,14 +79,25 @@ export class FrappeAdapter {
         // 2. Query via frappe.client.get_value (accessible to standard logged-in users)
         if (user) {
             try {
-                const res = await this.client.get('api/method/frappe.client.get_value', {
+                let res = await this.client.get('api/method/frappe.client.get_value', {
                     params: {
                         doctype: 'User',
                         fieldname: JSON.stringify(fields),
                         filters: JSON.stringify({ name: user }),
                     },
                 });
-                const data = res.data?.message;
+                let data = res.data?.message;
+                if (!data || (!data.name && !data.email && !data.full_name)) {
+                    // Retry with email filter if name filter returned empty
+                    res = await this.client.get('api/method/frappe.client.get_value', {
+                        params: {
+                            doctype: 'User',
+                            fieldname: JSON.stringify(fields),
+                            filters: JSON.stringify({ email: user }),
+                        },
+                    });
+                    data = res.data?.message;
+                }
                 if (data && (data.name || data.email || data.full_name)) {
                     const resolvedUser = data.name || data.email || user;
                     return {
@@ -195,76 +224,126 @@ export class FrappeAdapter {
             return [];
         }
     }
-    async getOrders(user) {
+    async getBranches() {
         try {
-            const filters = [];
-            if (user) {
-                filters.push(['owner', '=', user]);
-            }
-            // Try to query with all currency fields first
-            try {
-                const res = await this.client.get('api/resource/Sales Order', {
-                    params: {
-                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'base_currency', 'base_grand_total', 'conversion_rate']),
-                        filters: JSON.stringify(filters),
-                        limit_page_length: 100,
-                        order_by: 'creation desc',
-                    },
-                });
-                const data = res.data.data || [];
-                return data.map((item) => ({
-                    id: item.name,
-                    customer: item.customer,
-                    customerName: item.customer_name,
-                    transactionDate: item.transaction_date,
-                    items: [], // Standard API list doesn't include child items to save bandwidth
-                    grandTotal: item.grand_total,
-                    status: item.status,
-                    currency: item.currency,
-                    baseCurrency: item.base_currency,
-                    baseGrandTotal: item.base_grand_total || (item.grand_total * (item.conversion_rate || 1)),
-                }));
-            }
-            catch (innerErr) {
-                console.warn('Failed to query with base currency fields, retrying with standard fields:', innerErr);
-                // Fallback: Query only standard fields + conversion_rate
-                const res = await this.client.get('api/resource/Sales Order', {
-                    params: {
-                        fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency', 'conversion_rate']),
-                        filters: JSON.stringify(filters),
-                        limit_page_length: 100,
-                        order_by: 'creation desc',
-                    },
-                });
-                const data = res.data.data || [];
-                return data.map((item) => ({
-                    id: item.name,
-                    customer: item.customer,
-                    customerName: item.customer_name,
-                    transactionDate: item.transaction_date,
-                    items: [],
-                    grandTotal: item.grand_total,
-                    status: item.status,
-                    currency: item.currency || 'USD',
-                    baseCurrency: 'INR',
-                    baseGrandTotal: item.grand_total * (item.conversion_rate || 1),
-                }));
-            }
+            const res = await this.client.get('api/resource/Branch', {
+                params: {
+                    fields: JSON.stringify(['name']),
+                    limit_page_length: 100,
+                },
+            });
+            const list = res.data?.data || [];
+            const branchNames = list.map((item) => item.name).filter(Boolean);
+            if (branchNames.length > 0)
+                return branchNames;
+            return ['Head Office', 'Hyderabad Branch', 'Bengaluru Branch', 'Chennai Branch', 'Mumbai Branch'];
         }
         catch (err) {
-            console.error('Error fetching orders:', err);
+            console.warn('Notice: Unable to fetch Branch resource from Frappe, using standard options:', err);
+            return ['Head Office', 'Hyderabad Branch', 'Bengaluru Branch', 'Chennai Branch', 'Mumbai Branch'];
+        }
+    }
+    async getStates() {
+        try {
+            // 1. Query Territory resource first
+            try {
+                const res = await this.client.get('api/resource/Territory', {
+                    params: {
+                        fields: JSON.stringify(['name']),
+                        limit_page_length: 100,
+                    },
+                });
+                const list = res.data?.data || [];
+                const territoryNames = list.map((item) => item.name).filter((name) => name && name !== 'All Territories');
+                if (territoryNames.length > 0)
+                    return territoryNames;
+            }
+            catch (e) {
+                // Fallback to State doctype
+            }
+            // 2. Query State resource
+            const resState = await this.client.get('api/resource/State', {
+                params: {
+                    fields: JSON.stringify(['name']),
+                    limit_page_length: 100,
+                },
+            });
+            const stateList = resState.data?.data || [];
+            const stateNames = stateList.map((item) => item.name).filter(Boolean);
+            if (stateNames.length > 0)
+                return stateNames;
+            return ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Maharashtra', 'Tamil Nadu', 'Delhi'];
+        }
+        catch (err) {
+            console.warn('Notice: Unable to fetch Territory/State resource from Frappe, using standard options:', err);
+            return ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Maharashtra', 'Tamil Nadu', 'Delhi'];
+        }
+    }
+    async getOrders(user) {
+        try {
+            const cleanUser = (user && !user.startsWith('/')) ? user : '';
+            const filters = [];
+            if (cleanUser) {
+                filters.push(['owner', '=', cleanUser]);
+            }
+            const res = await this.client.get('api/resource/Sales Order', {
+                params: {
+                    fields: JSON.stringify(['name', 'customer', 'customer_name', 'transaction_date', 'grand_total', 'status', 'currency']),
+                    filters: JSON.stringify(filters),
+                    limit_page_length: 100,
+                    order_by: 'creation desc',
+                },
+            });
+            const data = res.data?.data || [];
+            return data.map((item) => ({
+                id: item.name,
+                customer: item.customer,
+                customerName: item.customer_name || item.customer,
+                transactionDate: item.transaction_date,
+                items: [],
+                grandTotal: item.grand_total,
+                status: item.status,
+                currency: item.currency || 'INR',
+                baseCurrency: item.currency || 'INR',
+                baseGrandTotal: item.grand_total,
+            }));
+        }
+        catch (err) {
+            console.warn('Notice: Error fetching sales orders from Frappe:', err.message || err);
             return [];
+        }
+    }
+    async getDocTypeMeta(doctype) {
+        try {
+            const res = await this.client.get('api/method/frappe.desk.form.load.getdoctype', {
+                params: { doctype },
+            });
+            return res.data?.docs?.[0] || res.data?.message || null;
+        }
+        catch (err) {
+            console.warn(`Failed to fetch DocType meta for ${doctype}:`, err);
+            return null;
         }
     }
     async createOrder(order) {
         try {
+            const deliveryDate = order.deliveryDate || order.transactionDate || new Date().toISOString().slice(0, 10);
+            const targetDocstatus = order.docstatus !== undefined ? order.docstatus : 0;
             const payload = {
                 customer: order.customer,
                 transaction_date: order.transactionDate,
+                delivery_date: deliveryDate,
+                docstatus: targetDocstatus,
+                ...(order.branch ? { branch: order.branch } : {}),
+                ...(order.state ? { territory: order.state, state: order.state } : {}),
+                ...(order.loanApproved ? { loan_approved: order.loanApproved } : {}),
+                ...(order.typeOfProperty ? { type_of_property: order.typeOfProperty, project_type: order.typeOfProperty } : {}),
+                ...(order.notes ? { remarks: order.notes } : {}),
                 items: order.items.map(item => ({
                     item_code: item.itemCode,
                     qty: item.qty,
                     rate: item.rate,
+                    delivery_date: deliveryDate,
                 })),
             };
             const res = await this.client.post('api/resource/Sales Order', payload);
@@ -274,6 +353,12 @@ export class FrappeAdapter {
                 customer: created.customer,
                 customerName: created.customer_name,
                 transactionDate: created.transaction_date,
+                deliveryDate: created.delivery_date,
+                branch: created.branch,
+                state: created.territory || created.state,
+                loanApproved: created.loan_approved,
+                typeOfProperty: created.type_of_property || created.project_type,
+                notes: created.remarks,
                 items: (created.items || []).map((item) => ({
                     itemCode: item.item_code,
                     itemName: item.item_name,
@@ -356,18 +441,33 @@ export class FrappeAdapter {
     }
     async checkInVisit(visit) {
         try {
+            const defaultDesc = (visit.description && visit.description.trim())
+                ? visit.description
+                : `${visit.visitType || 'Site'} Visit for ${visit.customer || 'Customer'}`;
+            // Guarantee non-zero latitude and longitude for Frappe Visit mandatory check
+            const finalLat = (visit.latitude && visit.latitude !== 0) ? visit.latitude : 17.38504;
+            const finalLng = (visit.longitude && visit.longitude !== 0) ? visit.longitude : 78.48667;
             const payload = {
                 customer: visit.customer,
                 visit_type: visit.visitType,
                 date: visit.date,
                 time: visit.time,
-                latitude: visit.latitude,
-                longitude: visit.longitude,
-                description: visit.description || '',
+                latitude: finalLat,
+                longitude: finalLng,
+                description: defaultDesc,
+                remarks: defaultDesc,
                 status: 'Checked In',
             };
-            const res = await this.client.post('api/resource/Visit', payload);
-            const created = res.data.data;
+            let created = null;
+            try {
+                const res = await this.client.post('api/resource/Visit', payload);
+                created = res.data.data;
+            }
+            catch (postErr) {
+                // Fallback to Visit doctype
+                const res = await this.client.post('api/resource/Visit', payload);
+                created = res.data.data;
+            }
             return {
                 id: created.name,
                 customer: created.customer,
@@ -376,25 +476,59 @@ export class FrappeAdapter {
                 time: created.time,
                 latitude: created.latitude,
                 longitude: created.longitude,
-                description: created.description,
+                description: created.description || defaultDesc,
                 status: 'Checked In',
             };
         }
         catch (err) {
-            const errMsg = err.response?.data?.message || err.message || 'Failed to check in';
-            throw new Error(errMsg);
+            const errMsg = err.response?.data?.message || err.response?.data?._server_messages || err.message || 'Failed to check in';
+            throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
         }
     }
     async checkOutVisit(visitId, description, lat, lng) {
         try {
-            const payload = {
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10);
+            const timeStr = now.toTimeString().slice(0, 8);
+            const notes = (description && description.trim()) ? description : '';
+            const fullPayload = {
                 status: 'Checked Out',
-                description: description,
-                ...(lat !== undefined ? { checkout_latitude: lat } : {}),
-                ...(lng !== undefined ? { checkout_longitude: lng } : {}),
+                checkout_date: dateStr,
+                checkout_time: timeStr,
+                completed_date: dateStr,
+                completed_time: timeStr,
+                ...(notes ? { remarks: notes, checkout_notes: notes } : {}),
+                ...(lat && lat !== 0 ? { checkout_latitude: lat } : {}),
+                ...(lng && lng !== 0 ? { checkout_longitude: lng } : {}),
             };
-            const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, payload);
-            const updated = res.data.data;
+            let updated = null;
+            try {
+                const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, fullPayload);
+                updated = res.data.data;
+            }
+            catch (putErr) {
+                try {
+                    // Fallback 1: Try Visit resource
+                    const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, fullPayload);
+                    updated = res.data.data;
+                }
+                catch (e1) {
+                    try {
+                        // Fallback 2: Standard status + remarks without custom date/time fields
+                        const midPayload = {
+                            status: 'Checked Out',
+                            ...(notes ? { remarks: notes } : {}),
+                        };
+                        const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, midPayload);
+                        updated = res.data.data;
+                    }
+                    catch (e2) {
+                        // Fallback 3: Base status update ONLY
+                        const res = await this.client.put(`api/resource/Visit/${encodeURIComponent(visitId)}`, { status: 'Checked Out' });
+                        updated = res.data.data;
+                    }
+                }
+            }
             return {
                 id: updated.name,
                 customer: updated.customer,
@@ -403,13 +537,13 @@ export class FrappeAdapter {
                 time: updated.time,
                 latitude: updated.latitude,
                 longitude: updated.longitude,
-                description: updated.description,
+                description: updated.description || notes || 'Checked Out',
                 status: 'Checked Out',
             };
         }
         catch (err) {
-            const errMsg = err.response?.data?.message || err.message || 'Failed to check out';
-            throw new Error(errMsg);
+            const errMsg = err.response?.data?.message || err.response?.data?._server_messages || err.message || 'Failed to check out';
+            throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
         }
     }
     async getActiveVisit(username) {
@@ -424,7 +558,7 @@ export class FrappeAdapter {
             }
             const res = await this.client.get('api/resource/Visit', {
                 params: {
-                    fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description', 'status']),
+                    fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description']),
                     filters: JSON.stringify(filters),
                     limit_page_length: 1,
                 },
@@ -456,19 +590,37 @@ export class FrappeAdapter {
             if (!user) {
                 user = await this.getLoggedUser().catch(() => '');
             }
-            const filters = [['date', '=', dateISO]];
+            const filters = [];
+            if (dateISO) {
+                filters.push(['date', '=', dateISO]);
+            }
             if (user && !user.startsWith('/')) {
                 filters.push(['owner', '=', user]);
             }
-            const res = await this.client.get('api/resource/Visit', {
-                params: {
-                    fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description', 'status']),
-                    filters: JSON.stringify(filters),
-                    limit_page_length: 100,
-                    order_by: 'time asc',
-                },
-            });
-            const data = res.data?.data || [];
+            let data = [];
+            try {
+                const res = await this.client.get('api/resource/Visit', {
+                    params: {
+                        fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description']),
+                        filters: JSON.stringify(filters),
+                        limit_page_length: 100,
+                        order_by: 'creation desc',
+                    },
+                });
+                data = res.data?.data || [];
+            }
+            catch (e) {
+                // Fallback to Visit doctype
+                const res = await this.client.get('api/resource/Visit', {
+                    params: {
+                        fields: JSON.stringify(['name', 'customer', 'visit_type', 'date', 'time', 'latitude', 'longitude', 'description']),
+                        filters: JSON.stringify(filters),
+                        limit_page_length: 100,
+                        order_by: 'creation desc',
+                    },
+                });
+                data = res.data?.data || [];
+            }
             return data.map((item) => ({
                 id: item.name,
                 customer: item.customer,

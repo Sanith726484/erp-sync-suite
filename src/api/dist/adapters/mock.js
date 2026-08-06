@@ -163,11 +163,20 @@ export class MockAdapter {
     }
     async getCompanyBranding(companyName) {
         return {
-            companyName: companyName || 'Mock Company',
+            companyName: companyName || 'Suntek Energy Systems Pvt. Ltd.',
             logoUrl: 'https://images.unsplash.com/photo-1599305445671-ac291c95aba9?w=200&h=200&fit=crop', // generic logo placeholder
             appIconUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop', // generic app icon
             splashScreenUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&h=1920&fit=crop', // generic splash screen
-            defaultCurrency: 'USD',
+            defaultCurrency: 'INR',
         };
+    }
+    async getDocTypeMeta(doctype) {
+        return { name: doctype };
+    }
+    async getBranches() {
+        return ['Head Office', 'Hyderabad Branch', 'Bengaluru Branch', 'Chennai Branch', 'Mumbai Branch'];
+    }
+    async getStates() {
+        return ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Maharashtra', 'Tamil Nadu', 'Delhi'];
     }
 }

@@ -19,6 +19,9 @@ export interface ErpAdapter {
     checkInVisit(visit: Omit<Visit, 'status' | 'id'>): Promise<Visit>;
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(user: string): Promise<Visit | null>;
-    getVisits(user: string, dateISO: string): Promise<Visit[]>;
+    getVisits(user: string, dateISO?: string): Promise<Visit[]>;
+    getBranches?(): Promise<string[]>;
+    getStates?(): Promise<string[]>;
     getCompanyBranding(companyName?: string): Promise<CompanyBranding>;
+    getDocTypeMeta?(doctype: string): Promise<any>;
 }
