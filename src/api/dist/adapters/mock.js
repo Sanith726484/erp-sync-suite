@@ -1,4 +1,7 @@
 export class MockAdapter {
+    constructor() {
+        this.currentUsername = 'MockSalesUser';
+    }
     getStorageItem(key, defaultValue) {
         if (typeof window === 'undefined')
             return defaultValue;
@@ -32,7 +35,26 @@ export class MockAdapter {
         return new Promise(resolve => setTimeout(() => resolve(true), 500));
     }
     async login(username, _password) {
-        return { token: 'mock_token_123', username };
+        this.currentUsername = username || 'MockSalesUser';
+        return { token: 'mock_token_123', username: this.currentUsername };
+    }
+    async getLoggedUser() {
+        return this.currentUsername;
+    }
+    async getUserProfile(username) {
+        const user = username || this.currentUsername;
+        const namePart = user.includes('@') ? user.split('@')[0] : user;
+        const fullName = namePart
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .replace(/[._-]/g, ' ')
+            .split(' ')
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(' ');
+        return {
+            username: user,
+            fullName: fullName || 'Mock Sales User',
+            email: user.includes('@') ? user : `${user.toLowerCase()}@erpnext.com`,
+        };
     }
     async getCustomers() {
         const defaultCustomers = [

@@ -1,14 +1,17 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile } from '../types';
 export declare class MockAdapter implements ErpAdapter {
     private getStorageItem;
     private setStorageItem;
     private calculateDistance;
+    private currentUsername;
     testConnection(): Promise<boolean>;
     login(username: string, _password?: string): Promise<{
         token: string;
         username: string;
     }>;
+    getLoggedUser(): Promise<string>;
+    getUserProfile(username: string): Promise<UserProfile>;
     getCustomers(): Promise<Customer[]>;
     getProducts(): Promise<Product[]>;
     getOrders(user?: string): Promise<Order[]>;

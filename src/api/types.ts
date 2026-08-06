@@ -72,3 +72,10 @@ export interface CompanyBranding {
   defaultCurrency?: string;
 }
 
+export interface UserProfile {
+  username: string;
+  fullName: string;
+  email: string;
+  userImage?: string;
+}
+

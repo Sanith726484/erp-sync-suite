@@ -28,23 +28,69 @@ export class FrappeAdapter {
             return false;
         }
     }
+    async getLoggedUser() {
+        try {
+            const res = await this.client.get('api/method/frappe.auth.get_logged_user');
+            if (res.data?.message && typeof res.data.message === 'string' && !res.data.message.startsWith('/')) {
+                return res.data.message;
+            }
+        }
+        catch (err) {
+            console.warn('Failed to fetch Frappe session user:', err);
+        }
+        return 'Administrator';
+    }
+    async getUserProfile(username) {
+        try {
+            const user = username || await this.getLoggedUser();
+            const res = await this.client.get(`api/resource/User/${encodeURIComponent(user)}`, {
+                params: {
+                    fields: JSON.stringify(['name', 'full_name', 'email', 'user_image']),
+                },
+            });
+            const data = res.data?.data || {};
+            const makeAbsolute = (url) => {
+                if (!url)
+                    return undefined;
+                if (url.startsWith('http://') || url.startsWith('https://'))
+                    return url;
+                const base = this.config.host.endsWith('/') ? this.config.host : `${this.config.host}/`;
+                return `${base}${url.startsWith('/') ? url.slice(1) : url}`;
+            };
+            return {
+                username: data.name || user,
+                fullName: data.full_name || user,
+                email: data.email || (data.name?.includes('@') ? data.name : user),
+                userImage: makeAbsolute(data.user_image),
+            };
+        }
+        catch (err) {
+            console.warn('Failed to fetch User profile from Frappe:', err);
+            return {
+                username,
+                fullName: username.includes('@') ? username.split('@')[0].replace(/[._-]/g, ' ') : username,
+                email: username.includes('@') ? username : `${username}@frappe.cloud`,
+            };
+        }
+    }
     async login(username, password) {
         try {
             if (this.config.apiKey && this.config.apiSecret) {
                 // If API key is configured, verify connection is active
                 await this.testConnection();
-                return { token: `${this.config.apiKey}:${this.config.apiSecret}`, username };
+                const sessionUser = await this.getLoggedUser();
+                return { token: `${this.config.apiKey}:${this.config.apiSecret}`, username: sessionUser || username };
             }
             if (!password) {
                 throw new Error('Password is required for form login');
             }
-            const res = await this.client.post('api/method/login', {
+            await this.client.post('api/method/login', {
                 usr: username,
                 pwd: password,
             });
-            // Frappe sets SID cookie on successful login
-            const loggedUser = res.data.home_page || res.data.message || username;
-            return { token: 'session_cookie', username: loggedUser };
+            // Frappe sets SID cookie on successful login. Fetch actual session user.
+            const sessionUser = await this.getLoggedUser();
+            return { token: 'session_cookie', username: sessionUser || username };
         }
         catch (err) {
             const errMsg = err.response?.data?.message || err.message || 'Login failed';

@@ -1,8 +1,10 @@
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile } from '../types';
 
 export interface ErpAdapter {
   testConnection(): Promise<boolean>;
   login(username: string, password?: string): Promise<{ token: string; username: string }>;
+  getLoggedUser(): Promise<string>;
+  getUserProfile(username: string): Promise<UserProfile>;
   
   getCustomers(): Promise<Customer[]>;
   getProducts(): Promise<Product[]>;

@@ -1,10 +1,12 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding, UserProfile } from '../types';
 export declare class FrappeAdapter implements ErpAdapter {
     private client;
     private config;
     constructor(config: ErpConnectionConfig);
     testConnection(): Promise<boolean>;
+    getLoggedUser(): Promise<string>;
+    getUserProfile(username: string): Promise<UserProfile>;
     login(username: string, password?: string): Promise<{
         token: string;
         username: string;

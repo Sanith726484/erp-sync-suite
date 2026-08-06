@@ -1,18 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ErpClientManager, GpsLog, Visit, CompanyBranding } from 'api';
+import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile } from 'api';
 import { LoginScreen } from './screens/LoginScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { OrderBookingScreen } from './screens/OrderBookingScreen';
 import { MobileMap } from './components/MobileMap';
 import { LocationTracker } from './services/LocationTracker';
 
+// Helper functions for user formatting
+const getUserDisplayName = (user: string): string => {
+  if (!user || user.startsWith('/')) return 'Administrator';
+  let namePart = user.includes('@') ? user.split('@')[0] : user;
+  namePart = namePart.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[._-]/g, ' ');
+  return namePart
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+const getUserEmail = (user: string, company?: string): string => {
+  if (!user || user.startsWith('/')) return 'administrator@erpnext.com';
+  if (user.includes('@')) return user;
+  const domain = company 
+    ? company.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com' 
+    : 'erpnext.com';
+  const slug = user.toLowerCase().replace(/[^a-z0-9]/g, '.');
+  return `${slug}@${domain}`;
+};
+
+const getUserInitials = (displayName: string): string => {
+  const parts = displayName.trim().split(' ').filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return (displayName.slice(0, 2) || 'FU').toUpperCase();
+};
+
 function MainApp() {
   const insets = useSafeAreaInsets();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState<'tracking' | 'booking' | 'map'>('tracking');
   const [logs, setLogs] = useState<GpsLog[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -20,21 +51,48 @@ function MainApp() {
   const [branding, setBranding] = useState<CompanyBranding | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const loadBranding = async () => {
+  const loadUserDataAndBranding = async () => {
     try {
       const client = ErpClientManager.getClient();
-      const data = await client.getCompanyBranding();
-      setBranding(data);
+      if (!client) return;
+
+      let sessionUser: string | null = null;
+      if (typeof client.getLoggedUser === 'function') {
+        sessionUser = await client.getLoggedUser().catch(() => null);
+      }
+
+      const targetUser = (sessionUser && typeof sessionUser === 'string' && !sessionUser.startsWith('/')) 
+        ? sessionUser 
+        : username;
+
+      let brandingData: CompanyBranding | null = null;
+      if (typeof client.getCompanyBranding === 'function') {
+        brandingData = await client.getCompanyBranding().catch(() => null);
+      }
+
+      let profileData: UserProfile | null = null;
+      if (typeof client.getUserProfile === 'function') {
+        profileData = await client.getUserProfile(targetUser).catch(() => null);
+      }
+
+      if (brandingData) setBranding(brandingData);
+      if (profileData) {
+        setUserProfile(profileData);
+        if (profileData.username) setUsername(profileData.username);
+      } else if (targetUser) {
+        setUsername(targetUser);
+      }
     } catch (err) {
-      console.warn('Failed to load mobile branding:', err);
+      console.warn('Failed to load mobile branding and user profile:', err);
     }
   };
 
   useEffect(() => {
     if (isLoggedIn) {
-      loadBranding();
+      void loadUserDataAndBranding();
     } else {
       setBranding(null);
+      setUserProfile(null);
     }
   }, [isLoggedIn]);
 
@@ -90,6 +148,9 @@ function MainApp() {
   }
 
   const clientConfig = ErpClientManager.getConfig();
+  const displayName = getUserDisplayName(username);
+  const userEmail = getUserEmail(username, branding?.companyName);
+  const initials = getUserInitials(displayName);
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
@@ -148,7 +209,11 @@ function MainApp() {
           <View style={[styles.sidebarDrawer, { paddingTop: topInset + 10, paddingBottom: bottomInset + 10 }]}>
             <View style={styles.sidebarHeader}>
               <View style={styles.avatarLarge}>
-                <Ionicons name="person" size={32} color="#10b981" />
+                {userProfile?.userImage ? (
+                  <Image source={{ uri: userProfile.userImage }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+                ) : (
+                  <Text style={styles.avatarInitials}>{initials}</Text>
+                )}
               </View>
 
               <TouchableOpacity 
@@ -160,8 +225,8 @@ function MainApp() {
             </View>
 
             <ScrollView style={styles.sidebarBody} showsVerticalScrollIndicator={false}>
-              <Text style={styles.sidebarName}>{username || 'Field User'}</Text>
-              <Text style={styles.sidebarEmail}>{username.includes('@') ? username : `${username}@erpnext.com`}</Text>
+              <Text style={styles.sidebarName}>{userProfile?.fullName || displayName}</Text>
+              <Text style={styles.sidebarEmail}>{userProfile?.email || userEmail}</Text>
               
               <View style={styles.companyPill}>
                 <Ionicons name="business" size={14} color="#10b981" />
@@ -173,6 +238,14 @@ function MainApp() {
               <Text style={styles.sectionHeading}>Account & Connection</Text>
 
               <View style={styles.infoRow}>
+                <Ionicons name="person-outline" size={18} color="#64748b" />
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>User ID / Username</Text>
+                  <Text style={styles.infoValue}>{(!username || username.startsWith('/')) ? displayName : username}</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
                 <Ionicons name="server-outline" size={18} color="#64748b" />
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>ERP Host Server</Text>
@@ -181,17 +254,9 @@ function MainApp() {
               </View>
 
               <View style={styles.infoRow}>
-                <Ionicons name="cash-outline" size={18} color="#64748b" />
-                <View style={styles.infoCol}>
-                  <Text style={styles.infoLabel}>Default Currency</Text>
-                  <Text style={styles.infoValue}>{branding?.defaultCurrency || 'USD'}</Text>
-                </View>
-              </View>
-
-              <View style={styles.infoRow}>
                 <Ionicons name="hardware-chip-outline" size={18} color="#64748b" />
                 <View style={styles.infoCol}>
-                  <Text style={styles.infoLabel}>App Build</Text>
+                  <Text style={styles.infoLabel}>App Version</Text>
                   <Text style={styles.infoValue}>1.0.0 (Expo SDK 56)</Text>
                 </View>
               </View>
@@ -329,11 +394,16 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1e293b',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#10b981',
+  },
+  avatarInitials: {
+    color: '#10b981',
+    fontWeight: '800',
+    fontSize: 20,
   },
   closeBtn: {
     padding: 6,

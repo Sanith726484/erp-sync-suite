@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile } from '../types';
 
 export class MockAdapter implements ErpAdapter {
   private getStorageItem<T>(key: string, defaultValue: T): T {
@@ -31,12 +31,36 @@ export class MockAdapter implements ErpAdapter {
     return R * c; // Distance in km
   }
 
+  private currentUsername: string = 'MockSalesUser';
+
   async testConnection(): Promise<boolean> {
     return new Promise(resolve => setTimeout(() => resolve(true), 500));
   }
 
   async login(username: string, _password?: string): Promise<{ token: string; username: string }> {
-    return { token: 'mock_token_123', username };
+    this.currentUsername = username || 'MockSalesUser';
+    return { token: 'mock_token_123', username: this.currentUsername };
+  }
+
+  async getLoggedUser(): Promise<string> {
+    return this.currentUsername;
+  }
+
+  async getUserProfile(username: string): Promise<UserProfile> {
+    const user = username || this.currentUsername;
+    const namePart = user.includes('@') ? user.split('@')[0] : user;
+    const fullName = namePart
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[._-]/g, ' ')
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+
+    return {
+      username: user,
+      fullName: fullName || 'Mock Sales User',
+      email: user.includes('@') ? user : `${user.toLowerCase()}@erpnext.com`,
+    };
   }
 
   async getCustomers(): Promise<Customer[]> {
