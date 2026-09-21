@@ -14,6 +14,8 @@ export interface Customer {
     name: string;
     mobile?: string;
     email?: string;
+    latitude?: number;
+    longitude?: number;
 }
 export interface Product {
     id: string;

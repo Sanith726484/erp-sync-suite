@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../api';
+import { ErpClientManager, GpsLog, Visit, Customer, CompanyBranding, UserProfile, AttendanceLog } from '../api';
 import { LoginScreen } from './screens/LoginScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { OrderBookingScreen } from './screens/OrderBookingScreen';
@@ -233,18 +233,22 @@ function MainApp() {
     }
   };
 
+  const [customers, setCustomers] = useState<Customer[]>([]);
+
   const loadMapData = async (dateOverride?: Date) => {
     if (!isLoggedIn || activeTab !== 'map') return;
     setLoadingMap(true);
     try {
       const dateISO = toDateISO(dateOverride || mapDate);
       const client = ErpClientManager.getClient();
-      const [gpsLogs, visitsList] = await Promise.all([
+      const [gpsLogs, visitsList, customersList] = await Promise.all([
         client.getGpsLocationLogs(username, dateISO),
-        client.getVisits(username, dateISO)
+        client.getVisits(username, dateISO),
+        client.getCustomers()
       ]);
       setLogs(gpsLogs);
       setVisits(visitsList);
+      setCustomers(customersList);
     } catch (err) {
       console.error('Failed to load map logs:', err);
     } finally {
@@ -380,7 +384,7 @@ function MainApp() {
               </View>
 
               <View style={styles.mapContainerFixed}>
-                <MobileMap logs={logs} visits={visits} />
+                <MobileMap logs={logs} visits={visits} customers={customers} />
               </View>
 
               <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>

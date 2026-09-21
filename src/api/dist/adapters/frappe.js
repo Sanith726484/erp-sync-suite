@@ -185,7 +185,7 @@ export class FrappeAdapter {
         try {
             const res = await this.client.get('api/resource/Customer', {
                 params: {
-                    fields: JSON.stringify(['name', 'customer_name', 'mobile_no', 'email_id']),
+                    fields: JSON.stringify(['name', 'customer_name', 'mobile_no', 'email_id', 'latitude', 'longitude']),
                     limit_page_length: 500,
                 },
             });
@@ -195,6 +195,8 @@ export class FrappeAdapter {
                 name: item.customer_name || item.name,
                 mobile: item.mobile_no || undefined,
                 email: item.email_id || undefined,
+                latitude: item.latitude || undefined,
+                longitude: item.longitude || undefined,
             }));
         }
         catch (err) {

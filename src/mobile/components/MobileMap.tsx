@@ -1,14 +1,15 @@
 import React, { useRef, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { GpsLog, Visit } from '../../api';
+import { GpsLog, Visit, Customer } from '../../api';
 
 interface MobileMapProps {
   logs: GpsLog[];
   visits: Visit[];
+  customers?: Customer[];
 }
 
-export const MobileMap: React.FC<MobileMapProps> = ({ logs, visits }) => {
+export const MobileMap: React.FC<MobileMapProps> = ({ logs, visits, customers = [] }) => {
   const webViewRef = useRef<WebView>(null);
 
   // Generate Leaflet HTML
@@ -65,7 +66,27 @@ export const MobileMap: React.FC<MobileMapProps> = ({ logs, visits }) => {
             }
           }
 
-          // Add Markers
+          // Add Customer (Dealer) Markers
+          if (data.customers && data.customers.length > 0) {
+            data.customers.forEach(function(c, index) {
+              if (c.latitude && c.longitude) {
+                points.push([c.latitude, c.longitude]);
+                
+                var customIcon = L.divIcon({
+                  html: '<div style="background: #3b82f6; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 11px; box-shadow: 0 2px 5px rgba(0,0,0,0.3)">' + (index + 1) + '</div>',
+                  className: '',
+                  iconSize: [24, 24],
+                  iconAnchor: [12, 12]
+                });
+
+                L.marker([c.latitude, c.longitude], { icon: customIcon })
+                  .bindPopup('<b>' + c.name + '</b><br/>Dealer')
+                  .addTo(markersLayer);
+              }
+            });
+          }
+
+          // Add Visit Markers
           if (data.visits && data.visits.length > 0) {
             data.visits.forEach(function(v, index) {
               if (v.latitude && v.longitude) {
@@ -73,6 +94,7 @@ export const MobileMap: React.FC<MobileMapProps> = ({ logs, visits }) => {
                 
                 var customIcon = L.divIcon({
                   html: '<div style="background: ' + (v.status === 'Checked Out' ? '#6366f1' : '#facc15') + '; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 800; font-size: 11px; box-shadow: 0 2px 5px rgba(0,0,0,0.3)">' + (index + 1) + '</div>',
+                  className: '',
                   iconSize: [24, 24],
                   iconAnchor: [12, 12]
                 });
@@ -103,12 +125,13 @@ export const MobileMap: React.FC<MobileMapProps> = ({ logs, visits }) => {
     if (webViewRef.current) {
       const dataPayload = JSON.stringify({
         coords: logs.map(l => ({ latitude: l.latitude, longitude: l.longitude })),
-        visits: visits.map(v => ({ customer: v.customer, status: v.status, time: v.time, latitude: v.latitude, longitude: v.longitude }))
+        visits: visits.map(v => ({ customer: v.customer, status: v.status, time: v.time, latitude: v.latitude, longitude: v.longitude })),
+        customers: customers.map(c => ({ name: c.name, latitude: c.latitude, longitude: c.longitude }))
       });
       const runScript = `if (window.drawRoute) { window.drawRoute(${dataPayload}); } true;`;
       webViewRef.current.injectJavaScript(runScript);
     }
-  }, [logs, visits]);
+  }, [logs, visits, customers]);
 
   return (
     <View style={styles.container}>
