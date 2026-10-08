@@ -4,7 +4,16 @@ export * from './types';
 export * from './adapters/base';
 export { FrappeAdapter } from './adapters/frappe';
 export { MockAdapter } from './adapters/mock';
+// React Native has no localStorage, so the active config lives only in memory. Keep it on
+// globalThis so a Metro hot reload of this module doesn't silently reset the host to the default.
+const globalStore = globalThis;
 export class ErpClientManager {
+    static get activeConfig() {
+        return globalStore.__erpActiveConfig || null;
+    }
+    static set activeConfig(config) {
+        globalStore.__erpActiveConfig = config;
+    }
     static getConfig() {
         if (this.activeConfig) {
             if (!this.activeConfig.host || this.activeConfig.host === 'https://' || this.activeConfig.host.trim() === '') {
@@ -59,4 +68,3 @@ export class ErpClientManager {
     }
 }
 ErpClientManager.instance = null;
-ErpClientManager.activeConfig = null;

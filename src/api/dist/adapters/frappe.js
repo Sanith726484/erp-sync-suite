@@ -185,7 +185,7 @@ export class FrappeAdapter {
         try {
             const res = await this.client.get('api/resource/Customer', {
                 params: {
-                    fields: JSON.stringify(['name', 'customer_name', 'mobile_no', 'email_id']),
+                    fields: JSON.stringify(['name', 'customer_name', 'mobile_no', 'email_id', 'latitude', 'longitude']),
                     limit_page_length: 500,
                 },
             });
@@ -195,6 +195,8 @@ export class FrappeAdapter {
                 name: item.customer_name || item.name,
                 mobile: item.mobile_no || undefined,
                 email: item.email_id || undefined,
+                latitude: item.latitude || undefined,
+                longitude: item.longitude || undefined,
             }));
         }
         catch (err) {
@@ -379,7 +381,7 @@ export class FrappeAdapter {
         try {
             // 1. Try to invoke custom API method first
             try {
-                const res = await this.client.post('api/method/erpnext_mobile.api.gps_tracking.save_gps_location', {
+                const res = await this.client.post('api/method/erpnext_mobile.erpnext_mobile.api.gps_tracking.save_gps_location', {
                     latitude: lat,
                     longitude: lng,
                 });
@@ -555,6 +557,229 @@ export class FrappeAdapter {
         catch (err) {
             console.warn('Attendance status query notice (DocType Employee Checkin may not be installed yet):', err.message || err);
             return null;
+        }
+    }
+    async getExpenseClaimTypes() {
+        // Employee users usually lack read permission on Expense Claim Type, so use the
+        // same whitelisted HRMS endpoint the Frappe HR PWA uses before falling back.
+        try {
+            const res = await this.client.get('api/method/hrms.api.get_expense_claim_types');
+            const types = (res.data?.message || []).map((t) => (typeof t === 'string' ? t : t.name)).filter(Boolean);
+            if (types.length > 0)
+                return types;
+        }
+        catch (err) {
+            console.warn('hrms.api.get_expense_claim_types unavailable, falling back to resource API:', err.message || err);
+        }
+        try {
+            const res = await this.client.get('api/resource/Expense Claim Type', {
+                params: {
+                    fields: JSON.stringify(['name']),
+                    order_by: 'name asc',
+                    limit_page_length: 0,
+                },
+            });
+            return (res.data?.data || []).map((t) => t.name);
+        }
+        catch (err) {
+            console.error('Error fetching expense claim types:', err);
+            return [];
+        }
+    }
+    async getExpenseClaims(user) {
+        const employee = await this.resolveEmployee(user);
+        if (!employee)
+            return [];
+        try {
+            const res = await this.client.get('api/resource/Expense Claim', {
+                params: {
+                    fields: JSON.stringify([
+                        'name', 'employee', 'posting_date', 'total_claimed_amount', 'total_sanctioned_amount',
+                        'approval_status', 'status', 'docstatus', 'remark',
+                    ]),
+                    filters: JSON.stringify([
+                        ['employee', '=', employee],
+                        ['docstatus', '!=', 2],
+                    ]),
+                    order_by: 'posting_date desc, creation desc',
+                    limit_page_length: 0,
+                },
+            });
+            return (res.data?.data || []).map((c) => ({
+                id: c.name,
+                employee: c.employee,
+                postingDate: c.posting_date,
+                expenses: [],
+                totalClaimedAmount: c.total_claimed_amount || 0,
+                totalSanctionedAmount: c.total_sanctioned_amount || 0,
+                approvalStatus: c.approval_status || 'Draft',
+                status: c.status,
+                docstatus: c.docstatus,
+                remark: c.remark,
+            }));
+        }
+        catch (err) {
+            console.error('Error fetching expense claims:', err);
+            return [];
+        }
+    }
+    async getExpenseClaimDefaults(user, postingDate) {
+        const employee = await this.resolveEmployee(user);
+        if (!employee) {
+            throw new Error('No Employee record is linked to your user account. Contact HR to link one.');
+        }
+        const empRes = await this.client.get('api/method/frappe.client.get_value', {
+            params: {
+                doctype: 'Employee',
+                fieldname: JSON.stringify(['employee_name', 'company', 'expense_approver', 'salary_currency']),
+                filters: JSON.stringify({ name: employee }),
+            },
+        });
+        const empDetails = empRes.data?.message || {};
+        const company = empDetails.company;
+        // Approver list, cost center and payable account come from the same whitelisted HRMS
+        // endpoints the PWA uses; each falls back gracefully if HRMS or the permission is missing.
+        const [approval, companyDefaults, companyCurrency] = await Promise.all([
+            this.client.get('api/method/hrms.api.get_expense_approval_details', { params: { employee } })
+                .then(r => r.data?.message || {})
+                .catch(() => ({})),
+            this.client.get('api/method/hrms.api.get_company_cost_center_and_expense_account', { params: { company } })
+                .then(r => r.data?.message || {})
+                .catch(() => ({})),
+            this.getCompanyBranding(company).then(b => b.defaultCurrency).catch(() => undefined),
+        ]);
+        // Currency and exchange rate are mandatory: employee salary currency, else company currency.
+        const currency = empDetails.salary_currency || companyCurrency;
+        let exchangeRate = 1;
+        if (currency && companyCurrency && currency !== companyCurrency) {
+            const rateRes = await this.client.get('api/method/erpnext.setup.utils.get_exchange_rate', {
+                params: { from_currency: currency, to_currency: companyCurrency, transaction_date: postingDate },
+            });
+            exchangeRate = rateRes.data?.message || 1;
+        }
+        const expenseApprover = approval.expense_approver || empDetails.expense_approver || undefined;
+        const approvers = (approval.department_approvers || []).map((a) => ({ id: a.name, fullName: a.full_name }));
+        if (expenseApprover && !approvers.some((a) => a.id === expenseApprover)) {
+            approvers.push({ id: expenseApprover, fullName: approval.expense_approver_name });
+        }
+        return {
+            employee,
+            employeeName: empDetails.employee_name,
+            company,
+            currency,
+            companyCurrency,
+            exchangeRate,
+            expenseApprover,
+            approvers,
+            approverMandatory: !!approval.is_mandatory,
+            costCenter: companyDefaults.cost_center || undefined,
+            payableAccount: companyDefaults.default_expense_claim_payable_account || undefined,
+        };
+    }
+    async createExpenseClaim(claim, user) {
+        try {
+            const defaults = await this.getExpenseClaimDefaults(user, claim.postingDate);
+            const res = await this.client.post('api/resource/Expense Claim', {
+                employee: defaults.employee,
+                company: defaults.company,
+                currency: claim.currency || defaults.currency,
+                exchange_rate: claim.exchangeRate || defaults.exchangeRate,
+                expense_approver: claim.expenseApprover || defaults.expenseApprover,
+                cost_center: claim.costCenter || defaults.costCenter,
+                payable_account: claim.payableAccount || defaults.payableAccount,
+                posting_date: claim.postingDate,
+                remark: claim.remark,
+                expenses: claim.expenses.map(item => ({
+                    expense_type: item.expenseType,
+                    expense_date: item.expenseDate,
+                    amount: item.amount,
+                    sanctioned_amount: item.sanctionedAmount ?? item.amount,
+                    description: item.description,
+                    cost_center: claim.costCenter || defaults.costCenter,
+                })),
+            });
+            const created = res.data.data;
+            return {
+                id: created.name,
+                employee: created.employee,
+                postingDate: created.posting_date,
+                expenses: (created.expenses || []).map((e) => ({
+                    expenseType: e.expense_type,
+                    expenseDate: e.expense_date,
+                    amount: e.amount,
+                    sanctionedAmount: e.sanctioned_amount,
+                    description: e.description,
+                })),
+                totalClaimedAmount: created.total_claimed_amount || 0,
+                totalSanctionedAmount: created.total_sanctioned_amount || 0,
+                approvalStatus: created.approval_status || 'Draft',
+                status: created.status,
+                docstatus: created.docstatus,
+                remark: created.remark,
+                expenseApprover: created.expense_approver,
+                currency: created.currency,
+                exchangeRate: created.exchange_rate,
+                costCenter: created.cost_center,
+                payableAccount: created.payable_account,
+            };
+        }
+        catch (err) {
+            // _server_messages is a JSON array of JSON-encoded {message} objects; unwrap it into readable text.
+            let serverMsg;
+            try {
+                serverMsg = JSON.parse(err.response?.data?._server_messages || '[]')
+                    .map((m) => JSON.parse(m).message)
+                    .join('\n')
+                    .replace(/<[^>]+>/g, '') || undefined;
+            }
+            catch {
+                serverMsg = undefined;
+            }
+            const errMsg = serverMsg || err.response?.data?.message || err.message || 'Failed to create expense claim';
+            throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
+        }
+    }
+    async getEmployeeAdvances(user) {
+        const employee = await this.resolveEmployee(user);
+        if (!employee)
+            return [];
+        try {
+            const res = await this.client.get('api/resource/Employee Advance', {
+                params: {
+                    fields: JSON.stringify([
+                        'name', 'purpose', 'posting_date', 'advance_amount', 'paid_amount',
+                        'claimed_amount', 'return_amount', 'status',
+                    ]),
+                    filters: JSON.stringify([
+                        ['employee', '=', employee],
+                        ['docstatus', '=', 1],
+                    ]),
+                    order_by: 'posting_date desc',
+                    limit_page_length: 0,
+                },
+            });
+            return (res.data?.data || [])
+                .map((a) => {
+                const paid = a.paid_amount || 0;
+                const claimed = a.claimed_amount || 0;
+                const returned = a.return_amount || 0;
+                return {
+                    id: a.name,
+                    purpose: a.purpose || '',
+                    postingDate: a.posting_date,
+                    advanceAmount: a.advance_amount || 0,
+                    paidAmount: paid,
+                    claimedAmount: claimed,
+                    returnAmount: returned,
+                    balanceAmount: paid - claimed - returned,
+                    status: a.status,
+                };
+            })
+                .filter((a) => a.balanceAmount > 0);
+        }
+        catch (err) {
+            console.warn('Employee advance query notice (HRMS may not be installed yet):', err.message || err);
+            return [];
         }
     }
     async checkInVisit(visit) {

@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding, UserProfile, AttendanceLog } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, ErpConnectionConfig, CompanyBranding, UserProfile, AttendanceLog, ExpenseClaim, EmployeeAdvance, ExpenseClaimDefaults } from '../types';
 export declare class FrappeAdapter implements ErpAdapter {
     private client;
     private config;
@@ -27,6 +27,11 @@ export declare class FrappeAdapter implements ErpAdapter {
     checkInAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
     checkOutAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
     getTodayAttendanceStatus(user: string): Promise<AttendanceLog | null>;
+    getExpenseClaimTypes(): Promise<string[]>;
+    getExpenseClaims(user: string): Promise<ExpenseClaim[]>;
+    getExpenseClaimDefaults(user: string, postingDate: string): Promise<ExpenseClaimDefaults>;
+    createExpenseClaim(claim: Omit<ExpenseClaim, 'id' | 'approvalStatus' | 'totalClaimedAmount'>, user: string): Promise<ExpenseClaim>;
+    getEmployeeAdvances(user: string): Promise<EmployeeAdvance[]>;
     checkInVisit(visit: Omit<Visit, 'status' | 'id'>): Promise<Visit>;
     checkOutVisit(visitId: string, description: string, lat?: number, lng?: number): Promise<Visit>;
     getActiveVisit(username: string): Promise<Visit | null>;
