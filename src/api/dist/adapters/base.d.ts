@@ -1,4 +1,4 @@
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog, ExpenseClaim, EmployeeAdvance, ExpenseClaimDefaults } from '../types';
 export interface ErpAdapter {
     testConnection(): Promise<boolean>;
     login(username: string, password?: string): Promise<{
@@ -23,6 +23,11 @@ export interface ErpAdapter {
     checkInAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
     checkOutAttendance(lat: number, lng: number, user: string): Promise<AttendanceLog>;
     getTodayAttendanceStatus(user: string): Promise<AttendanceLog | null>;
+    getExpenseClaimTypes(): Promise<string[]>;
+    getExpenseClaims(user: string): Promise<ExpenseClaim[]>;
+    getExpenseClaimDefaults(user: string, postingDate: string): Promise<ExpenseClaimDefaults>;
+    createExpenseClaim(claim: Omit<ExpenseClaim, 'id' | 'approvalStatus' | 'totalClaimedAmount'>, user: string): Promise<ExpenseClaim>;
+    getEmployeeAdvances(user: string): Promise<EmployeeAdvance[]>;
     getBranches?(): Promise<string[]>;
     getStates?(): Promise<string[]>;
     getCompanyBranding(companyName?: string): Promise<CompanyBranding>;

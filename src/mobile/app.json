@@ -44,7 +44,17 @@
           "resizeMode": "contain",
           "backgroundColor": "#090d16"
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      "expo-font",
+      "expo-status-bar"
     ]
   }
 }

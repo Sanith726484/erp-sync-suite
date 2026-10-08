@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, StatusBar, Platform, Modal, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ErpClientManager, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../api';
+import { ErpClientManager, GpsLog, Visit, Customer, CompanyBranding, UserProfile, AttendanceLog } from '../api';
 import { LoginScreen } from './screens/LoginScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { OrderBookingScreen } from './screens/OrderBookingScreen';
+import { ExpensesScreen } from './screens/ExpensesScreen';
 import { MobileMap } from './components/MobileMap';
 import { LocationTracker } from './services/LocationTracker';
 
@@ -64,7 +65,7 @@ function MainApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<'tracking' | 'booking' | 'map'>('tracking');
+  const [activeTab, setActiveTab] = useState<'tracking' | 'booking' | 'map' | 'expenses'>('tracking');
   const [logs, setLogs] = useState<GpsLog[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loadingMap, setLoadingMap] = useState(false);
@@ -233,18 +234,22 @@ function MainApp() {
     }
   };
 
+  const [customers, setCustomers] = useState<Customer[]>([]);
+
   const loadMapData = async (dateOverride?: Date) => {
     if (!isLoggedIn || activeTab !== 'map') return;
     setLoadingMap(true);
     try {
       const dateISO = toDateISO(dateOverride || mapDate);
       const client = ErpClientManager.getClient();
-      const [gpsLogs, visitsList] = await Promise.all([
+      const [gpsLogs, visitsList, customersList] = await Promise.all([
         client.getGpsLocationLogs(username, dateISO),
-        client.getVisits(username, dateISO)
+        client.getVisits(username, dateISO),
+        client.getCustomers()
       ]);
       setLogs(gpsLogs);
       setVisits(visitsList);
+      setCustomers(customersList);
     } catch (err) {
       console.error('Failed to load map logs:', err);
     } finally {
@@ -301,6 +306,7 @@ function MainApp() {
           {activeTab === 'tracking' && 'Home'}
           {activeTab === 'booking' && 'Order Booking'}
           {activeTab === 'map' && 'Route Map'}
+          {activeTab === 'expenses' && 'Expense Claims'}
         </Text>
 
         <View style={{ width: 32 }} />
@@ -365,6 +371,7 @@ function MainApp() {
       <View style={styles.content}>
         {activeTab === 'tracking' && <TrackingScreen currentUser={username} />}
         {activeTab === 'booking' && <OrderBookingScreen currentUser={username} />}
+        {activeTab === 'expenses' && <ExpensesScreen currentUser={username} currency={branding?.defaultCurrency} />}
         {activeTab === 'map' && (() => {
           const timelineLogs = [...logs].slice(-8).reverse();
           const isTrackingActive = attendanceStatus === 'checked-in';
@@ -380,7 +387,7 @@ function MainApp() {
               </View>
 
               <View style={styles.mapContainerFixed}>
-                <MobileMap logs={logs} visits={visits} />
+                <MobileMap logs={logs} visits={visits} customers={customers} />
               </View>
 
               <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
@@ -652,6 +659,18 @@ function MainApp() {
             color={activeTab === 'map' ? '#10b981' : '#65778a'}
           />
           <Text style={[styles.tabText, activeTab === 'map' && styles.tabTextActive]}>View Map</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'expenses' && styles.tabItemActive]}
+          onPress={() => setActiveTab('expenses')}
+        >
+          <Ionicons
+            name={activeTab === 'expenses' ? 'wallet' : 'wallet-outline'}
+            size={22}
+            color={activeTab === 'expenses' ? '#10b981' : '#65778a'}
+          />
+          <Text style={[styles.tabText, activeTab === 'expenses' && styles.tabTextActive]}>Expenses</Text>
         </TouchableOpacity>
       </View>
     </View>
