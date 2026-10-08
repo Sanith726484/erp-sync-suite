@@ -1,5 +1,5 @@
 import { ErpAdapter } from './base';
-import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog } from '../types';
+import { Customer, Product, Order, GpsLog, Visit, CompanyBranding, UserProfile, AttendanceLog, ExpenseClaim, EmployeeAdvance, ExpenseClaimDefaults } from '../types';
 
 export class MockAdapter implements ErpAdapter {
   private getStorageItem<T>(key: string, defaultValue: T): T {
@@ -220,6 +220,55 @@ export class MockAdapter implements ErpAdapter {
       .filter(l => l.employee === (user || this.currentUsername) && l.time.startsWith(todayISO))
       .sort((a, b) => b.time.localeCompare(a.time));
     return userLogs[0] || null;
+  }
+
+  async getExpenseClaimTypes(): Promise<string[]> {
+    return ['Calls', 'Food', 'Medical', 'Others', 'Travel'];
+  }
+
+  async getExpenseClaimDefaults(user: string, _postingDate: string): Promise<ExpenseClaimDefaults> {
+    return {
+      employee: user || this.currentUsername,
+      employeeName: user || this.currentUsername,
+      company: 'Suntek Energy Systems Pvt. Ltd.',
+      currency: 'INR',
+      companyCurrency: 'INR',
+      exchangeRate: 1,
+      expenseApprover: 'manager@example.com',
+      approvers: [{ id: 'manager@example.com', fullName: 'Mock Manager' }],
+      approverMandatory: false,
+      costCenter: 'Main - MOCK',
+      payableAccount: 'Creditors - MOCK',
+    };
+  }
+
+  async getExpenseClaims(user: string): Promise<ExpenseClaim[]> {
+    const claims = this.getStorageItem<ExpenseClaim[]>('mock_expense_claims', []);
+    return claims
+      .filter(c => c.employee === (user || this.currentUsername))
+      .sort((a, b) => b.postingDate.localeCompare(a.postingDate));
+  }
+
+  async createExpenseClaim(claim: Omit<ExpenseClaim, 'id' | 'approvalStatus' | 'totalClaimedAmount'>, user: string): Promise<ExpenseClaim> {
+    const claims = this.getStorageItem<ExpenseClaim[]>('mock_expense_claims', []);
+    const total = claim.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const newClaim: ExpenseClaim = {
+      ...claim,
+      id: `HR-EXP-MOCK-${Math.floor(10000 + Math.random() * 90000)}`,
+      employee: user || this.currentUsername,
+      totalClaimedAmount: total,
+      totalSanctionedAmount: total,
+      approvalStatus: 'Draft',
+      status: 'Draft',
+      docstatus: 0,
+    };
+    claims.push(newClaim);
+    this.setStorageItem('mock_expense_claims', claims);
+    return newClaim;
+  }
+
+  async getEmployeeAdvances(_user: string): Promise<EmployeeAdvance[]> {
+    return [];
   }
 
   async getCompanyBranding(companyName?: string): Promise<CompanyBranding> {

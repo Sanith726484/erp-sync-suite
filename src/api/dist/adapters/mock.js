@@ -197,6 +197,50 @@ export class MockAdapter {
             .sort((a, b) => b.time.localeCompare(a.time));
         return userLogs[0] || null;
     }
+    async getExpenseClaimTypes() {
+        return ['Calls', 'Food', 'Medical', 'Others', 'Travel'];
+    }
+    async getExpenseClaimDefaults(user, _postingDate) {
+        return {
+            employee: user || this.currentUsername,
+            employeeName: user || this.currentUsername,
+            company: 'Suntek Energy Systems Pvt. Ltd.',
+            currency: 'INR',
+            companyCurrency: 'INR',
+            exchangeRate: 1,
+            expenseApprover: 'manager@example.com',
+            approvers: [{ id: 'manager@example.com', fullName: 'Mock Manager' }],
+            approverMandatory: false,
+            costCenter: 'Main - MOCK',
+            payableAccount: 'Creditors - MOCK',
+        };
+    }
+    async getExpenseClaims(user) {
+        const claims = this.getStorageItem('mock_expense_claims', []);
+        return claims
+            .filter(c => c.employee === (user || this.currentUsername))
+            .sort((a, b) => b.postingDate.localeCompare(a.postingDate));
+    }
+    async createExpenseClaim(claim, user) {
+        const claims = this.getStorageItem('mock_expense_claims', []);
+        const total = claim.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const newClaim = {
+            ...claim,
+            id: `HR-EXP-MOCK-${Math.floor(10000 + Math.random() * 90000)}`,
+            employee: user || this.currentUsername,
+            totalClaimedAmount: total,
+            totalSanctionedAmount: total,
+            approvalStatus: 'Draft',
+            status: 'Draft',
+            docstatus: 0,
+        };
+        claims.push(newClaim);
+        this.setStorageItem('mock_expense_claims', claims);
+        return newClaim;
+    }
+    async getEmployeeAdvances(_user) {
+        return [];
+    }
     async getCompanyBranding(companyName) {
         return {
             companyName: companyName || 'Suntek Energy Systems Pvt. Ltd.',

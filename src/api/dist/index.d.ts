@@ -6,7 +6,8 @@ export { FrappeAdapter } from './adapters/frappe';
 export { MockAdapter } from './adapters/mock';
 export declare class ErpClientManager {
     private static instance;
-    private static activeConfig;
+    private static get activeConfig();
+    private static set activeConfig(value);
     static getConfig(): ErpConnectionConfig;
     static setConfig(config: ErpConnectionConfig): void;
     static clearConfig(): void;

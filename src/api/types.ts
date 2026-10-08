@@ -109,3 +109,61 @@ export interface UserProfile {
   timeZone?: string;
 }
 
+
+export interface ExpenseClaimItem {
+  expenseType: string;
+  expenseDate: string;
+  amount: number;
+  sanctionedAmount?: number;
+  description?: string;
+}
+
+export interface ExpenseClaim {
+  id?: string;
+  employee?: string;
+  postingDate: string;
+  expenses: ExpenseClaimItem[];
+  totalClaimedAmount: number;
+  totalSanctionedAmount?: number;
+  approvalStatus: 'Draft' | 'Approved' | 'Rejected';
+  status?: string;
+  docstatus?: 0 | 1 | 2;
+  remark?: string;
+  expenseApprover?: string;
+  currency?: string;
+  exchangeRate?: number;
+  costCenter?: string;
+  payableAccount?: string;
+}
+
+export interface ExpenseApprover {
+  id: string;
+  fullName?: string;
+}
+
+// Values the HRMS PWA pre-fills before showing a new Expense Claim form.
+export interface ExpenseClaimDefaults {
+  employee: string;
+  employeeName?: string;
+  company: string;
+  currency?: string;
+  companyCurrency?: string;
+  exchangeRate: number;
+  expenseApprover?: string;
+  approvers: ExpenseApprover[];
+  approverMandatory: boolean;
+  costCenter?: string;
+  payableAccount?: string;
+}
+
+export interface EmployeeAdvance {
+  id: string;
+  purpose: string;
+  postingDate: string;
+  advanceAmount: number;
+  paidAmount: number;
+  claimedAmount: number;
+  returnAmount: number;
+  balanceAmount: number;
+  status?: string;
+}

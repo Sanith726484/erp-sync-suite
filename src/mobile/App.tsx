@@ -6,6 +6,7 @@ import { ErpClientManager, GpsLog, Visit, Customer, CompanyBranding, UserProfile
 import { LoginScreen } from './screens/LoginScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { OrderBookingScreen } from './screens/OrderBookingScreen';
+import { ExpensesScreen } from './screens/ExpensesScreen';
 import { MobileMap } from './components/MobileMap';
 import { LocationTracker } from './services/LocationTracker';
 
@@ -64,7 +65,7 @@ function MainApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<'tracking' | 'booking' | 'map'>('tracking');
+  const [activeTab, setActiveTab] = useState<'tracking' | 'booking' | 'map' | 'expenses'>('tracking');
   const [logs, setLogs] = useState<GpsLog[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loadingMap, setLoadingMap] = useState(false);
@@ -305,6 +306,7 @@ function MainApp() {
           {activeTab === 'tracking' && 'Home'}
           {activeTab === 'booking' && 'Order Booking'}
           {activeTab === 'map' && 'Route Map'}
+          {activeTab === 'expenses' && 'Expense Claims'}
         </Text>
 
         <View style={{ width: 32 }} />
@@ -369,6 +371,7 @@ function MainApp() {
       <View style={styles.content}>
         {activeTab === 'tracking' && <TrackingScreen currentUser={username} />}
         {activeTab === 'booking' && <OrderBookingScreen currentUser={username} />}
+        {activeTab === 'expenses' && <ExpensesScreen currentUser={username} currency={branding?.defaultCurrency} />}
         {activeTab === 'map' && (() => {
           const timelineLogs = [...logs].slice(-8).reverse();
           const isTrackingActive = attendanceStatus === 'checked-in';
@@ -656,6 +659,18 @@ function MainApp() {
             color={activeTab === 'map' ? '#10b981' : '#65778a'}
           />
           <Text style={[styles.tabText, activeTab === 'map' && styles.tabTextActive]}>View Map</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'expenses' && styles.tabItemActive]}
+          onPress={() => setActiveTab('expenses')}
+        >
+          <Ionicons
+            name={activeTab === 'expenses' ? 'wallet' : 'wallet-outline'}
+            size={22}
+            color={activeTab === 'expenses' ? '#10b981' : '#65778a'}
+          />
+          <Text style={[styles.tabText, activeTab === 'expenses' && styles.tabTextActive]}>Expenses</Text>
         </TouchableOpacity>
       </View>
     </View>
